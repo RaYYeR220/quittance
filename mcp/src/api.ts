@@ -19,6 +19,10 @@ export interface Payment {
 
 export interface Verdict {
   valid: boolean;
+  /** Signed over the challenge the caller passed; false when none was passed. */
+  bound: boolean;
+  /** The challenge hasn't expired. */
+  fresh: boolean;
   network: Network;
   txid: string;
   height: number;
@@ -62,8 +66,8 @@ export class QuittanceApi {
     return JSON.parse(body) as T;
   }
 
-  verify(disclosure: string, challenge?: string): Promise<Verdict> {
-    return this.call("/v1/verify", { method: "POST", body: JSON.stringify({ disclosure, challenge }) });
+  verify(disclosure: string, challenge?: string, network: Network = "main"): Promise<Verdict> {
+    return this.call("/v1/verify", { method: "POST", body: JSON.stringify({ disclosure, challenge, network }) });
   }
 
   createChallenge(input: { verifier: string; context: string; ttl_seconds?: number; network?: Network }): Promise<ChallengeTicket> {
@@ -78,12 +82,19 @@ export class QuittanceApi {
 /** One sentence a support agent can act on, followed by the evidence. */
 export function describeVerdict(v: Verdict): string {
   const lines: string[] = [];
+  const net = v.network === "main" ? "Zcash mainnet" : "Zcash testnet (test coins, no value)";
+  const unit = v.network === "main" ? "ZEC" : "TAZ";
   if (v.valid && v.revealed) {
     for (const p of v.revealed.payments) {
       const memo = p.memo.kind === "text" ? ` with memo "${p.memo.value}"` : p.memo.kind === "bytes" ? " with a binary memo" : "";
       lines.push(
-        `VALID: the holder of the spending key behind this payment paid ${p.value_zec} ZEC to ${p.recipient}${memo}, in transaction ${v.txid} (height ${v.height}).`,
+        `VALID on ${net}: the holder of a spending key used in this payment paid ${p.value_zec} ${unit} to ${p.recipient}${memo}, in transaction ${v.txid} (height ${v.height}).`,
       );
+    }
+    if (!v.bound) {
+      lines.push("NOT BOUND to a challenge of yours: no challenge was checked, so this could be a receipt made for someone else. Ask for a fresh one.");
+    } else if (!v.fresh) {
+      lines.push("The challenge it answers has expired.");
     }
     if (v.revealed.payments.length === 0) {
       lines.push(`VALID, but no output is disclosed: it proves who spent in ${v.txid}, not whom they paid.`);

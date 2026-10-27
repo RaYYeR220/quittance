@@ -31,7 +31,7 @@ const STAMP: Record<State, string> = {
 /** What a verdict proves, what it leaves out, and every check behind it. */
 export function Receipt({ verdict, lookup }: { verdict: Verdict; lookup?: ChainLookup }) {
   const firstFail = verdict.checks.find((c) => c.status === "fail");
-  const unbound = verdict.checks.find((c) => c.id === "challenge" && c.status === "warn");
+  const unbound = verdict.valid && (!verdict.bound || !verdict.fresh);
   const unit = verdict.network === "main" ? "ZEC" : "TAZ";
   const state: State = verdict.valid ? (unbound ? "warn" : "proven") : "refused";
 
@@ -72,7 +72,7 @@ export function Receipt({ verdict, lookup }: { verdict: Verdict; lookup?: ChainL
                   <span className={styles.tick} aria-hidden="true">
                     ✓
                   </span>
-                  <span className={styles.value}>Sent by the holder of the spending key behind this payment</span>
+                  <span className={styles.value}>Sent by the holder of a spending key used in this payment</span>
                 </li>
                 <li>
                   <span className={styles.tick} aria-hidden="true">
@@ -84,10 +84,13 @@ export function Receipt({ verdict, lookup }: { verdict: Verdict; lookup?: ChainL
                   </span>
                 </li>
               </ul>
-              {unbound && (
+              {verdict.valid && !verdict.bound && (
                 <p className={styles.warn}>
                   You didn&apos;t give the challenge you issued, so this could be a receipt made for someone else. Paste your challenge to rule that out.
                 </p>
+              )}
+              {verdict.valid && verdict.bound && !verdict.fresh && (
+                <p className={styles.warn}>The challenge this receipt answers has expired. Decide whether you still accept it, or ask for a new one.</p>
               )}
             </section>
 
@@ -129,8 +132,8 @@ export function Receipt({ verdict, lookup }: { verdict: Verdict; lookup?: ChainL
         {lookup && (
           <footer className={styles.foot}>
             {lookup.kind === "block"
-              ? `Checked in this browser. Our server was asked only for the transactions in block ${lookup.height.toLocaleString("en-US")}.`
-              : "Checked in this browser. Our server was asked for this transaction by its id."}
+              ? `Checked in this browser, against chain data from our server, which was asked only for the transactions in block ${lookup.height.toLocaleString("en-US")}.`
+              : "Checked in this browser, against chain data from our server, which was asked for this transaction by its id."}
           </footer>
         )}
       </div>

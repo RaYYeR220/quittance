@@ -361,7 +361,7 @@ export default function Home() {
         <div className={s.wrap}>
           <div className={s.mainnetHead}>
             <h2 id="h-mainnet">Real payments, real receipts</h2>
-            <p>56 automated tests, including every refusal above, three of them against these receipts.</p>
+            <p>58 automated tests, including every refusal above, three of them against these receipts.</p>
           </div>
           <ul className={s.ledger}>
             {MAINNET.map((r) => (

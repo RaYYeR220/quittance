@@ -17,7 +17,7 @@ use serde_json::{json, Value};
 use zip311::{Network, PaymentDisclosure, VerifyContext, NOT_REVEALED};
 
 use crate::chain::{Chain, ChainError};
-use crate::challenges::Store;
+use crate::challenges::{AnswerError, Store};
 use crate::demo::Demo;
 
 pub struct AppState {
@@ -28,6 +28,8 @@ pub struct AppState {
     pub app_origin: String,
     pub gallery: Value,
     pub limiter: Limiter,
+    /// Halo2 verification is CPU-bound; at most this many run at once.
+    pub verify_slots: tokio::sync::Semaphore,
 }
 
 pub fn router(state: Arc<AppState>) -> Router {
@@ -83,7 +85,7 @@ impl Limiter {
 
     fn check(&self, ip: IpAddr, bucket: &'static str, per_minute: u32) -> Result<(), ApiError> {
         let mut w = self.windows.lock().unwrap();
-        if w.len() > 50_000 {
+        if w.len() > 10_000 {
             w.retain(|_, (start, _)| start.elapsed() < Duration::from_secs(60));
         }
         let entry = w.entry((ip, bucket)).or_insert((Instant::now(), 0));
@@ -98,12 +100,17 @@ impl Limiter {
     }
 }
 
-/// The caller's address: the proxy's `x-forwarded-for` if present, else the peer.
+/// The caller's address. Behind our reverse proxy the peer is the proxy, which
+/// appends the address it saw to `x-forwarded-for`; only that last entry is
+/// trusted, since anything before it is whatever the client sent.
 fn client_ip(headers: &HeaderMap, peer: SocketAddr) -> IpAddr {
+    if !peer.ip().is_loopback() {
+        return peer.ip();
+    }
     headers
         .get("x-forwarded-for")
         .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.split(',').next())
+        .and_then(|v| v.rsplit(',').next())
         .and_then(|v| v.trim().parse().ok())
         .unwrap_or(peer.ip())
 }
@@ -129,32 +136,46 @@ async fn health(State(s): State<Arc<AppState>>) -> Json<Value> {
 struct VerifyRequest {
     disclosure: String,
     challenge: Option<String>,
+    /// The network the verifier expects; mainnet unless it says otherwise.
+    network: Option<String>,
+}
+
+/// A verdict that fails before the transaction is looked at.
+fn early_verdict(d: &PaymentDisclosure, id: &str, label: &str, detail: String) -> Value {
+    json!({
+        "valid": false,
+        "bound": false,
+        "fresh": true,
+        "network": d.network,
+        "txid": d.txid_display(),
+        "height": d.height,
+        "challenge_text": std::str::from_utf8(&d.msg).ok(),
+        "challenge": zip311::Challenge::parse(&d.msg),
+        "checks": [{ "id": id, "label": label, "status": "fail", "detail": detail }],
+        "revealed": null,
+        "not_revealed": NOT_REVEALED,
+    })
 }
 
 impl AppState {
-    /// Verifies a decoded disclosure against the chain and returns the verdict
-    /// as JSON, with the fixed list of what a disclosure never reveals.
-    pub async fn verdict(self: &Arc<Self>, d: PaymentDisclosure, expected: Option<Vec<u8>>) -> Result<Value, ApiError> {
+    /// Verifies a decoded disclosure against the chain, for a verifier on
+    /// `network`, and returns the verdict as JSON with the fixed list of what a
+    /// disclosure never reveals.
+    pub async fn verdict(self: &Arc<Self>, d: PaymentDisclosure, expected: Option<Vec<u8>>, network: Network) -> Result<Value, ApiError> {
+        if d.network != network {
+            return Ok(early_verdict(&d, "network", "Network", format!("the disclosure is for {}, this verifier is on {}", d.network, network)));
+        }
         let found = match self.chain.transaction(d.network, d.txid).await {
             Ok(t) => Some(t),
             Err(ChainError::NotFound) => None,
             Err(e) => return Err(ApiError(StatusCode::BAD_GATEWAY, e.to_string())),
         };
         let Some(found) = found else {
-            return Ok(json!({
-                "valid": false,
-                "network": d.network,
-                "txid": d.txid_display(),
-                "height": d.height,
-                "challenge_text": std::str::from_utf8(&d.msg).ok(),
-                "challenge": zip311::Challenge::parse(&d.msg),
-                "checks": [{ "id": "mined", "label": "Mined", "status": "fail", "detail": "the chain has no transaction with this txid" }],
-                "revealed": null,
-                "not_revealed": NOT_REVEALED,
-            }));
+            return Ok(early_verdict(&d, "mined", "Mined", "the chain has no transaction with this txid".into()));
         };
         let tx = found.parse(d.network, d.height).map_err(|e| bad(e.to_string()))?;
         let state = self.clone();
+        let _slot = self.verify_slots.acquire().await.map_err(|_| ApiError(StatusCode::SERVICE_UNAVAILABLE, "shutting down".into()))?;
         let verdict = tokio::task::spawn_blocking(move || {
             let cx = VerifyContext { network: d.network, expected_msg: expected.as_deref(), vk: &state.vk, now: now() };
             zip311::verify(&d, &tx, found.height, &cx)
@@ -173,12 +194,25 @@ fn decode(text: &str) -> Result<PaymentDisclosure, ApiError> {
     PaymentDisclosure::decode(text).map_err(|e| bad(e))
 }
 
-async fn verify(State(s): State<Arc<AppState>>, Json(req): Json<VerifyRequest>) -> Result<Json<Value>, ApiError> {
+async fn verify(
+    State(s): State<Arc<AppState>>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+    Json(req): Json<VerifyRequest>,
+) -> Result<Json<Value>, ApiError> {
+    s.limiter.check(client_ip(&headers, peer), "verify", 30)?;
+    let network = parse_network(req.network.as_deref().unwrap_or("main"))?;
     let d = decode(&req.disclosure)?;
-    Ok(Json(s.verdict(d, req.challenge.map(String::into_bytes)).await?))
+    Ok(Json(s.verdict(d, req.challenge.map(String::into_bytes), network).await?))
 }
 
-async fn transaction(State(s): State<Arc<AppState>>, Path((network, txid)): Path<(String, String)>) -> Result<Json<Value>, ApiError> {
+async fn transaction(
+    State(s): State<Arc<AppState>>,
+    Path((network, txid)): Path<(String, String)>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, ApiError> {
+    s.limiter.check(client_ip(&headers, peer), "chain", 60)?;
     let network = parse_network(&network)?;
     let mut bytes: [u8; 32] = hex::decode(&txid).ok().and_then(|b| b.try_into().ok()).ok_or_else(|| bad("txid must be 64 hex characters"))?;
     // Accept the display order explorers use.
@@ -190,7 +224,13 @@ async fn transaction(State(s): State<Arc<AppState>>, Path((network, txid)): Path
     }
 }
 
-async fn block(State(s): State<Arc<AppState>>, Path((network, height)): Path<(String, u32)>) -> Result<Json<Value>, ApiError> {
+async fn block(
+    State(s): State<Arc<AppState>>,
+    Path((network, height)): Path<(String, u32)>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+) -> Result<Json<Value>, ApiError> {
+    s.limiter.check(client_ip(&headers, peer), "chain", 60)?;
     let network = parse_network(&network)?;
     let txids = s.chain.block_txids(network, height).await.map_err(|e| ApiError(StatusCode::BAD_GATEWAY, e.to_string()))?;
     Ok(Json(json!({ "height": height, "txids": txids })))
@@ -260,9 +300,15 @@ async fn answer_challenge(
     if d.network != t.network {
         return Err(bad(format!("this challenge is for {}, the disclosure is for {}", t.network, d.network)));
     }
-    let verdict = s.verdict(d, Some(t.msg.clone().into_bytes())).await?;
-    let t = s.tickets.answer(&id, req.disclosure.trim().to_string(), verdict, now()).expect("ticket exists");
-    Ok(Json(ticket_json(&s, &t)))
+    if now() > t.expires {
+        return Err(ApiError(StatusCode::GONE, "this challenge has expired; ask for a new one".into()));
+    }
+    let verdict = s.verdict(d.clone(), Some(t.msg.clone().into_bytes()), t.network).await?;
+    match s.tickets.answer(&id, &d, verdict, now()) {
+        Ok(t) => Ok(Json(ticket_json(&s, &t))),
+        Err(AnswerError::Expired) => Err(ApiError(StatusCode::GONE, "this challenge has expired; ask for a new one".into())),
+        Err(AnswerError::NoSuchTicket) => Err(ApiError(StatusCode::NOT_FOUND, "no such challenge".into())),
+    }
 }
 
 async fn demo_info(State(s): State<Arc<AppState>>) -> Result<Json<Value>, ApiError> {
@@ -287,7 +333,7 @@ async fn demo_prove(
         return Err(bad("keep the challenge under 512 bytes"));
     }
     let demo = s.demo.as_ref().ok_or_else(|| ApiError(StatusCode::SERVICE_UNAVAILABLE, "the live demo is not configured".into()))?;
-    let out = demo.prove(req.challenge.into_bytes(), req.payment.unwrap_or(0)).await.map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let out = demo.prove(req.challenge.into_bytes(), req.payment.unwrap_or(0)).await.map_err(demo_error)?;
     Ok(Json(out))
 }
 
@@ -306,7 +352,7 @@ async fn demo_forge(
 ) -> Result<Json<Value>, ApiError> {
     s.limiter.check(client_ip(&headers, peer), "demo", 12)?;
     let demo = s.demo.as_ref().ok_or_else(|| ApiError(StatusCode::SERVICE_UNAVAILABLE, "the live demo is not configured".into()))?;
-    let out = demo.forge_as_recipient(req.payment.unwrap_or(0)).await.map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let out = demo.forge_as_recipient(req.payment.unwrap_or(0)).await.map_err(demo_error)?;
     Ok(Json(out))
 }
 
@@ -317,7 +363,28 @@ struct DemoOrchard {
 
 /// Retargets a demo disclosure at a real Orchard-pool transaction, so the
 /// visitor can watch the verifier refuse it at the pool check.
-async fn demo_orchard(State(s): State<Arc<AppState>>, Json(req): Json<DemoOrchard>) -> Result<Json<Value>, ApiError> {
+/// The demo's internal errors are logged, not returned: they can name paths on
+/// this machine.
+fn demo_error(e: crate::demo::DemoError) -> ApiError {
+    match e {
+        crate::demo::DemoError::Busy => {
+            ApiError(StatusCode::SERVICE_UNAVAILABLE, "the demo wallet is busy answering someone else; try again in a few seconds".into())
+        }
+        crate::demo::DemoError::BadRequest(m) => bad(m),
+        crate::demo::DemoError::Failed(detail) => {
+            tracing::warn!("demo failed: {detail}");
+            ApiError(StatusCode::INTERNAL_SERVER_ERROR, "the demo wallet could not answer right now".into())
+        }
+    }
+}
+
+async fn demo_orchard(
+    State(s): State<Arc<AppState>>,
+    ConnectInfo(peer): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+    Json(req): Json<DemoOrchard>,
+) -> Result<Json<Value>, ApiError> {
+    s.limiter.check(client_ip(&headers, peer), "demo", 12)?;
     let demo = s.demo.as_ref().ok_or_else(|| ApiError(StatusCode::SERVICE_UNAVAILABLE, "the live demo is not configured".into()))?;
     let text = demo.orchard_variant(&req.disclosure).map_err(bad)?;
     Ok(Json(json!({ "disclosure": text })))

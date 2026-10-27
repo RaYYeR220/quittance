@@ -1,11 +1,13 @@
 //! "Ask for proof": a verifier opens a challenge, the payer answers it with a
 //! disclosure, and the verified result is kept for the verifier to read.
 //!
-//! Tickets live in memory and are written to one JSON file so a restart keeps
-//! them. They hold the challenge and the verdict, never a viewing key.
+//! Tickets live in memory and are written to one JSON file in the background
+//! so a restart keeps them. They hold the challenge, the verdict and a valid
+//! answer's disclosure (without any attached transaction), never a viewing key.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 use rand::{rand_core::UnwrapErr, rngs::SysRng, Rng};
@@ -13,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use zip311::{Challenge, Network};
 
 pub const MAX_TICKETS: usize = 10_000;
+/// A disclosure without its attached transaction is about 8.5 KB of text.
+const MAX_STORED_DISCLOSURE: usize = 64 * 1024;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Ticket {
@@ -32,6 +36,13 @@ pub struct Ticket {
 pub struct Store {
     tickets: Mutex<HashMap<String, Ticket>>,
     path: Option<PathBuf>,
+    dirty: AtomicBool,
+}
+
+/// Why an answer wasn't recorded.
+pub enum AnswerError {
+    NoSuchTicket,
+    Expired,
 }
 
 impl Store {
@@ -42,17 +53,21 @@ impl Store {
             .and_then(|b| serde_json::from_slice::<Vec<Ticket>>(&b).ok())
             .map(|v| v.into_iter().map(|t| (t.id.clone(), t)).collect())
             .unwrap_or_default();
-        Store { tickets: Mutex::new(tickets), path }
+        Store { tickets: Mutex::new(tickets), path, dirty: AtomicBool::new(false) }
     }
 
-    fn persist(&self, tickets: &HashMap<String, Ticket>) {
-        if let Some(p) = &self.path {
-            let list: Vec<&Ticket> = tickets.values().collect();
-            if let Ok(bytes) = serde_json::to_vec(&list) {
-                let tmp = p.with_extension("tmp");
-                if std::fs::write(&tmp, bytes).is_ok() {
-                    let _ = std::fs::rename(&tmp, p);
-                }
+    /// Writes the tickets out if anything changed since the last write. Called
+    /// from a background task, never while handling a request.
+    pub fn flush(&self) {
+        if !self.dirty.swap(false, Ordering::AcqRel) {
+            return;
+        }
+        let Some(p) = &self.path else { return };
+        let list: Vec<Ticket> = self.tickets.lock().unwrap().values().cloned().collect();
+        if let Ok(bytes) = serde_json::to_vec(&list) {
+            let tmp = p.with_extension("tmp");
+            if std::fs::write(&tmp, bytes).is_ok() {
+                let _ = std::fs::rename(&tmp, p);
             }
         }
     }
@@ -84,7 +99,7 @@ impl Store {
             return Err("too many open challenges; try again later".into());
         }
         tickets.insert(id, ticket.clone());
-        self.persist(&tickets);
+        self.dirty.store(true, Ordering::Release);
         Ok(ticket)
     }
 
@@ -93,19 +108,30 @@ impl Store {
     }
 
     /// Records an answer. Once a ticket holds a valid answer it keeps it; until
-    /// then the latest answer is shown, so the payer can see why one failed.
-    pub fn answer(&self, id: &str, disclosure: String, verdict: serde_json::Value, now: u64) -> Option<Ticket> {
+    /// then the latest verdict is shown, so the payer can see why one failed.
+    /// Only a valid answer's disclosure is kept, and never its attached
+    /// transaction, which the chain already holds.
+    pub fn answer(&self, id: &str, disclosure: &zip311::PaymentDisclosure, verdict: serde_json::Value, now: u64) -> Result<Ticket, AnswerError> {
         let mut tickets = self.tickets.lock().unwrap();
-        let t = tickets.get_mut(id)?;
+        let t = tickets.get_mut(id).ok_or(AnswerError::NoSuchTicket)?;
+        if now > t.expires {
+            return Err(AnswerError::Expired);
+        }
         let already_valid = t.verdict.as_ref().and_then(|v| v.get("valid")).and_then(|v| v.as_bool()).unwrap_or(false);
         if !already_valid {
+            let valid = verdict.get("valid").and_then(|v| v.as_bool()).unwrap_or(false);
             t.answered = Some(now);
-            t.disclosure = Some(disclosure);
             t.verdict = Some(verdict);
+            t.disclosure = valid
+                .then(|| {
+                    let mut kept = disclosure.clone();
+                    kept.tx = None;
+                    kept.encode()
+                })
+                .filter(|text| text.len() <= MAX_STORED_DISCLOSURE);
+            self.dirty.store(true, Ordering::Release);
         }
-        let out = t.clone();
-        self.persist(&tickets);
-        Some(out)
+        Ok(t.clone())
     }
 }
 
@@ -116,17 +142,40 @@ const ALPHABET: &[u8] = b"abcdefghjkmnpqrstuvwxyz23456789";
 mod tests {
     use super::*;
 
+    fn disclosure(height: u32) -> zip311::PaymentDisclosure {
+        zip311::PaymentDisclosure {
+            network: Network::Test,
+            txid: [1; 32],
+            height,
+            msg: vec![],
+            reproved: None,
+            resigned: vec![],
+            outputs: vec![],
+            tx: Some(vec![0xab; 4000]),
+        }
+    }
+
     #[test]
-    fn a_ticket_keeps_its_first_valid_answer() {
+    fn a_ticket_keeps_its_first_valid_answer_without_the_attachment() {
         let s = Store::open(None);
         let t = s.create(Network::Test, "Acme", "ticket 1", 3600, 1000).unwrap();
         assert!(t.msg.starts_with("quittance:v1|Acme|ticket 1|"));
         let bad = serde_json::json!({ "valid": false });
         let good = serde_json::json!({ "valid": true });
-        assert!(s.answer(&t.id, "zpdtest1bad".into(), bad.clone(), 1001).unwrap().verdict.unwrap()["valid"] == false);
-        assert!(s.answer(&t.id, "zpdtest1good".into(), good, 1002).unwrap().verdict.unwrap()["valid"] == true);
-        let after = s.answer(&t.id, "zpdtest1bad2".into(), bad, 1003).unwrap();
-        assert_eq!(after.disclosure.as_deref(), Some("zpdtest1good"));
+        let first = s.answer(&t.id, &disclosure(1), bad.clone(), 1001).ok().unwrap();
+        assert_eq!(first.verdict.unwrap()["valid"], false);
+        assert_eq!(first.disclosure, None, "an invalid answer's disclosure is not kept");
+        let kept = s.answer(&t.id, &disclosure(2), good, 1002).ok().unwrap().disclosure.unwrap();
+        assert_eq!(zip311::PaymentDisclosure::decode(&kept).unwrap().tx, None);
+        let after = s.answer(&t.id, &disclosure(3), bad, 1003).ok().unwrap();
+        assert_eq!(zip311::PaymentDisclosure::decode(after.disclosure.as_deref().unwrap()).unwrap().height, 2);
+    }
+
+    #[test]
+    fn an_expired_ticket_takes_no_answer() {
+        let s = Store::open(None);
+        let t = s.create(Network::Test, "Acme", "ticket 2", 60, 1000).unwrap();
+        assert!(matches!(s.answer(&t.id, &disclosure(1), serde_json::json!({ "valid": true }), 1061), Err(AnswerError::Expired)));
     }
 
     #[test]

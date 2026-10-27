@@ -1,7 +1,7 @@
 "use client";
 
 import { api } from "./api";
-import type { Inspection, Verdict } from "./types";
+import type { Inspection, Network, Verdict } from "./types";
 import type { Request, Response } from "./verifier.worker";
 
 type Pending = { resolve: (v: string) => void; reject: (e: Error) => void };
@@ -79,7 +79,7 @@ export interface Result {
  * transaction, the API is asked only for the txids of the claimed block;
  * otherwise it is asked for the transaction by txid.
  */
-export async function verifyHere(text: string, expectedChallenge?: string): Promise<Result> {
+export async function verifyHere(text: string, expectedChallenge?: string, verifierNetwork: Network = "main"): Promise<Result> {
   const inspection = await inspect(text);
   const { network, txid, height } = inspection;
   let raw = "";
@@ -96,7 +96,7 @@ export async function verifyHere(text: string, expectedChallenge?: string): Prom
     mined = tx.height ?? undefined;
   }
   const verdict = JSON.parse(
-    await rpc({ op: "verify", text, rawTxHex: raw, minedHeight: mined, expected: expectedChallenge || undefined, network }),
+    await rpc({ op: "verify", text, rawTxHex: raw, minedHeight: mined, expected: expectedChallenge || undefined, network: verifierNetwork }),
   ) as Verdict;
   return { inspection, verdict, lookup };
 }

@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use orchard::circuit::ProvingKey;
 use quittance_wallet::{parse_txid, DisclosureRequest, Lightwalletd, Wallet};
@@ -36,6 +36,17 @@ struct OrchardTx {
     height: u32,
 }
 
+pub enum DemoError {
+    /// Someone else's request holds the wallet; the caller should retry.
+    Busy,
+    BadRequest(String),
+    /// Logged on the server only: the detail can name local paths.
+    Failed(String),
+}
+
+/// How long a request waits for the demo wallet before giving up.
+const QUEUE_WAIT: Duration = Duration::from_secs(20);
+
 pub struct Demo {
     network: Network,
     servers: Vec<String>,
@@ -63,16 +74,20 @@ impl Demo {
         json!({ "network": self.network, "payments": self.payments, "orchard_txid": self.orchard.as_ref().map(|o| &o.txid) })
     }
 
-    fn payment(&self, i: usize) -> Result<&DemoPayment, String> {
-        self.payments.get(i).ok_or_else(|| format!("the demo has {} payments", self.payments.len()))
+    fn payment(&self, i: usize) -> Result<&DemoPayment, DemoError> {
+        self.payments.get(i).ok_or_else(|| DemoError::BadRequest(format!("the demo has {} payments", self.payments.len())))
+    }
+
+    async fn turn(&self) -> Result<tokio::sync::MutexGuard<'_, ()>, DemoError> {
+        tokio::time::timeout(QUEUE_WAIT, self.busy.lock()).await.map_err(|_| DemoError::Busy)
     }
 
     /// A fresh disclosure of payment `i`, signed over `msg`, with the
     /// transaction attached so the browser needn't look it up by txid.
-    pub async fn prove(&self, msg: Vec<u8>, i: usize) -> Result<Value, String> {
+    pub async fn prove(&self, msg: Vec<u8>, i: usize) -> Result<Value, DemoError> {
         let payment = self.payment(i)?.clone();
-        let txid = parse_txid(&payment.txid)?;
-        let _turn = self.busy.lock().await;
+        let txid = parse_txid(&payment.txid).map_err(DemoError::Failed)?;
+        let _turn = self.turn().await?;
         let started = Instant::now();
         let (dir, network, servers, pk) = (self.sender_dir.clone(), self.network, self.servers.clone(), self.pk.clone());
         // The wallet's database handle isn't Sync, so the proof runs on a
@@ -86,17 +101,18 @@ impl Demo {
             })
         })
         .await
-        .map_err(|e| e.to_string())??;
+        .map_err(|e| DemoError::Failed(e.to_string()))?
+        .map_err(DemoError::Failed)?;
         Ok(json!({ "disclosure": d.encode(), "payment": payment, "prove_ms": started.elapsed().as_millis() as u64 }))
     }
 
     /// The recipient of payment `i` tries to disclose it as its sender. Its
     /// wallet refuses before any proof exists: it spent nothing in that
     /// transaction, so it has no note to re-prove.
-    pub async fn forge_as_recipient(&self, i: usize) -> Result<Value, String> {
+    pub async fn forge_as_recipient(&self, i: usize) -> Result<Value, DemoError> {
         let payment = self.payment(i)?.clone();
-        let txid = parse_txid(&payment.txid)?;
-        let _turn = self.busy.lock().await;
+        let txid = parse_txid(&payment.txid).map_err(DemoError::Failed)?;
+        let _turn = self.turn().await?;
         let (dir, network, servers) = (self.payee_dir.clone(), self.network, self.servers.clone());
         let attempt = tokio::task::spawn_blocking(move || {
             tokio::runtime::Handle::current().block_on(async move {
@@ -106,7 +122,8 @@ impl Demo {
             })
         })
         .await
-        .map_err(|e| e.to_string())??;
+        .map_err(|e| DemoError::Failed(e.to_string()))?
+        .map_err(DemoError::Failed)?;
         Ok(match attempt {
             Err(e) => json!({ "refused": true, "reason": e.to_string(), "payment": payment }),
             Ok(_) => json!({ "refused": false, "reason": "the recipient's wallet produced a kit, which should never happen", "payment": payment }),

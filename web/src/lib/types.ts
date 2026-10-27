@@ -28,6 +28,10 @@ export interface Challenge {
 
 export interface Verdict {
   valid: boolean;
+  /** Signed over the challenge the verifier gave; false when none was given. */
+  bound: boolean;
+  /** The challenge hasn't expired. */
+  fresh: boolean;
   network: Network;
   txid: string;
   height: number;

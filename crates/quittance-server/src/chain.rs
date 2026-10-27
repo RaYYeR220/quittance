@@ -12,6 +12,9 @@ use zip311::Network;
 
 const TIMEOUT: Duration = Duration::from_secs(12);
 const CACHE_CAP: usize = 1024;
+/// A mined transaction is re-read after this long, so a reorg can't pin a
+/// stale height; an unmined or unknown one sooner.
+const MINED_TTL: Duration = Duration::from_secs(120);
 const UNMINED_TTL: Duration = Duration::from_secs(10);
 
 #[derive(Debug, thiserror::Error)]
@@ -44,7 +47,8 @@ impl ChainTx {
 
 pub struct Chain {
     channels: HashMap<Network, Vec<(String, Channel)>>,
-    cache: Mutex<HashMap<(Network, [u8; 32]), (ChainTx, Instant)>>,
+    /// `None` caches a not-found answer, briefly.
+    cache: Mutex<HashMap<(Network, [u8; 32]), (Option<ChainTx>, Instant)>>,
 }
 
 impl Chain {
@@ -77,8 +81,9 @@ impl Chain {
     /// Looks a transaction up by txid (as serialized, not display order).
     pub async fn transaction(&self, network: Network, txid: [u8; 32]) -> Result<ChainTx, ChainError> {
         if let Some((tx, at)) = self.cache.lock().unwrap().get(&(network, txid)) {
-            if tx.height.is_some() || at.elapsed() < UNMINED_TTL {
-                return Ok(tx.clone());
+            let ttl = if tx.as_ref().is_some_and(|t| t.height.is_some()) { MINED_TTL } else { UNMINED_TTL };
+            if at.elapsed() < ttl {
+                return tx.clone().ok_or(ChainError::NotFound);
             }
         }
         let mut errors = vec![];
@@ -92,21 +97,29 @@ impl Chain {
                         h => u32::try_from(h).ok(),
                     };
                     let tx = ChainTx { raw: r.data, height };
-                    let mut cache = self.cache.lock().unwrap();
-                    if cache.len() >= CACHE_CAP {
-                        cache.clear();
-                    }
-                    cache.insert((network, txid), (tx.clone(), Instant::now()));
+                    self.remember(network, txid, Some(tx.clone()));
                     return Ok(tx);
                 }
-                Err(status) if status.code() == tonic::Code::NotFound || status.message().contains("not found") => {
-                    return Err(ChainError::NotFound)
+                Err(status)
+                    if status.code() == tonic::Code::NotFound
+                        || status.message().contains("not found")
+                        || status.message().to_lowercase().contains("no such") =>
+                {
+                    self.remember(network, txid, None);
+                    return Err(ChainError::NotFound);
                 }
-                Err(status) if status.message().to_lowercase().contains("no such") => return Err(ChainError::NotFound),
                 Err(status) => errors.push(format!("{url}: {}", status.message())),
             }
         }
         Err(ChainError::Unavailable(errors.join("; ")))
+    }
+
+    fn remember(&self, network: Network, txid: [u8; 32], tx: Option<ChainTx>) {
+        let mut cache = self.cache.lock().unwrap();
+        if cache.len() >= CACHE_CAP {
+            cache.clear();
+        }
+        cache.insert((network, txid), (tx, Instant::now()));
     }
 
     /// The txids (display order) of the block at `height`. Lets a verifier that

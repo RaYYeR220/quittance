@@ -77,6 +77,15 @@ transparent receipt is; nothing else in the wallet touches transparent funds.
     server learns that someone is interested in that transaction, and from
     which IP.
 - Self-hosting the API (one binary) removes us from the picture entirely.
+- The page trusts the chain data it gets: it checks the receipt against the
+  transaction and the block's txid list our API returns (which come from a
+  public lightwalletd server), but it does not validate the transaction's own
+  proofs or the chain's proof of work. A compromised API could serve a fake
+  transaction and a matching block list. Self-host, or check the txid on an
+  explorer you trust.
+- The verifier chooses the network it accepts payments on (mainnet unless it
+  says otherwise). A receipt for a testnet payment is refused by a mainnet
+  verifier, in the browser, the API and the MCP server alike.
 
 ### Verifying through the API (`POST /v1/verify`, the MCP server)
 
@@ -86,10 +95,14 @@ in-memory transaction cache keyed by txid.
 
 ### Ask for proof (`/ask`, `/v1/challenges`)
 
-The server stores the challenge (verifier name, context, nonce, expiry) and,
-once answered, the disclosure and the verdict, so the verifier can read them
-later. Tickets are dropped seven days after they expire. The verifier name and
-context are whatever the verifier typed: do not put personal data there.
+The server stores the challenge (verifier name, context, nonce, expiry), the
+latest verdict and, once a valid answer arrives, that disclosure without any
+attached transaction, so the verifier can read them later. Answers after the
+challenge expires are refused. Tickets are dropped seven days after they
+expire. Anyone holding the ticket link can read the ticket, which is how the
+payer and the verifier share it; the id is random (about 44 bits). The verifier
+name and context are whatever the verifier typed: do not put personal data
+there.
 
 ### Live demo (`/demo`)
 
@@ -111,6 +124,7 @@ stored beyond the request.
 | Using a disclosure on the other network | refused; the coin type is also in the digest |
 | An Orchard-pool spend | refused: the Orchard circuit's 2026 soundness bug means its proofs are not evidence |
 | Oversized input | lengths are capped before allocation (challenge 1 KiB, 64 actions, 128 KiB proof, 2 MiB transaction); request bodies are capped at 4 MiB |
+| Flooding the API | per-client limits on every endpoint that does work (the client address is the one our proxy saw, not a header the client can set), at most 4 proof checks at once, a bounded wait for the demo wallet, short caches for transactions and for unknown txids |
 
 ## Out of scope and honest limits
 

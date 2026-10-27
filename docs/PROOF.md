@@ -68,8 +68,8 @@ at height 3,428,100.
 - Making a receipt: 0.6 s on a laptop, 3.9 s on the demo server (2 shared vCPUs).
 - Checking it: 6 ms native. In a browser the first check also builds the
   verifying key from the circuit, which takes 10–20 s; later checks are instant.
-- Tests: 53 Rust tests (zip311 37, including 6 against mainnet receipts; wallet
-  12; CLI 2; server 2) and 3 for the MCP server.
+- Tests: 54 Rust tests (zip311 37, including 6 against mainnet receipts; wallet
+  12; CLI 2; server 3) and 4 for the MCP server.
 
 ## Not claimed
 

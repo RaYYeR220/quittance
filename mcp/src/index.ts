@@ -61,10 +61,11 @@ server.registerTool(
     inputSchema: {
       disclosure: z.string().min(10).describe("The zpd1… / zpdtest1… text the customer sent"),
       challenge: z.string().max(1024).optional().describe("The exact challenge message you issued"),
+      network: z.enum(["main", "test"]).optional().describe("The network you accept payments on; mainnet if omitted"),
     },
   },
-  async ({ disclosure, challenge }) => {
-    const v = await api.verify(disclosure.trim(), challenge);
+  async ({ disclosure, challenge, network }) => {
+    const v = await api.verify(disclosure.trim(), challenge, network ?? "main");
     return { content: [{ type: "text", text: describeVerdict(v) }], structuredContent: { ...v }, isError: !v.valid };
   },
 );

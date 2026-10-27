@@ -33,8 +33,8 @@ export class ApiError extends Error {
 export const api = {
   tx: (network: Network, txid: string) => call<{ txid: string; height: number | null; raw: string }>(`/v1/tx/${network}/${txid}`),
   block: (network: Network, height: number) => call<{ height: number; txids: string[] }>(`/v1/block/${network}/${height}`),
-  verify: (disclosure: string, challenge?: string) =>
-    call<Verdict>("/v1/verify", { method: "POST", body: JSON.stringify({ disclosure, challenge }) }),
+  verify: (disclosure: string, challenge?: string, network: Network = "main") =>
+    call<Verdict>("/v1/verify", { method: "POST", body: JSON.stringify({ disclosure, challenge, network }) }),
   createChallenge: (input: { verifier: string; context: string; ttl_seconds?: number; network?: Network }) =>
     call<Ticket>("/v1/challenges", { method: "POST", body: JSON.stringify(input) }),
   challenge: (id: string) => call<Ticket>(`/v1/challenges/${encodeURIComponent(id)}`),

@@ -84,7 +84,14 @@ pub struct Revealed {
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Verdict {
+    /// Every check passed. A valid disclosure may still be unbound or stale:
+    /// read `bound` and `fresh` before acting on it.
     pub valid: bool,
+    /// The disclosure was signed over the challenge the verifier says it issued.
+    /// `false` when no challenge was given, so a replay can't be ruled out.
+    pub bound: bool,
+    /// The challenge, if it follows the `quittance:v1` convention, hasn't expired.
+    pub fresh: bool,
     pub network: Network,
     pub txid: String,
     pub height: u32,
@@ -141,8 +148,13 @@ pub fn verify_bundle<V>(
     let ok = run(d, txid, ironwood, has_orchard, mined_height, cx, &challenge, &mut r);
     let revealed = ok.then(|| reveal(d, ironwood.expect("checked"), cx.network));
     let valid = revealed.is_some() && r.checks.iter().all(|c| c.status != CheckStatus::Fail);
+    let status = |id: &str| r.checks.iter().find(|c| c.id == id).map(|c| c.status);
+    let bound = valid && status("challenge") == Some(CheckStatus::Pass);
+    let fresh = status("expiry") != Some(CheckStatus::Warn);
     Verdict {
         valid,
+        bound,
+        fresh,
         network: d.network,
         txid: d.txid_display(),
         height: d.height,

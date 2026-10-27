@@ -65,9 +65,21 @@ async fn main() {
         app_origin: std::env::var("QUITTANCE_APP_ORIGIN").unwrap_or_else(|_| "http://localhost:3000".into()),
         gallery,
         limiter: api::Limiter::new(),
+        verify_slots: tokio::sync::Semaphore::new(4),
     });
 
-    let app = api::router(state)
+    // Challenge tickets are written out in the background, never in a handler.
+    let flusher = state.clone();
+    tokio::spawn(async move {
+        let mut tick = tokio::time::interval(std::time::Duration::from_secs(3));
+        loop {
+            tick.tick().await;
+            let s = flusher.clone();
+            let _ = tokio::task::spawn_blocking(move || s.tickets.flush()).await;
+        }
+    });
+
+    let app = api::router(state.clone())
         .layer(RequestBodyLimitLayer::new(4 << 20))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());

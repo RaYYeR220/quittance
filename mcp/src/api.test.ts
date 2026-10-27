@@ -4,6 +4,8 @@ import { QuittanceApi, describeVerdict, type Verdict } from "./api.js";
 
 const valid: Verdict = {
   valid: true,
+  bound: true,
+  fresh: true,
   network: "main",
   txid: "ab".repeat(32),
   height: 3_540_000,
@@ -18,7 +20,7 @@ const valid: Verdict = {
 
 test("a valid verdict reads as one actionable sentence", () => {
   const text = describeVerdict(valid);
-  assert.match(text, /^VALID: .* paid 0\.0003 ZEC to u1xyz with memo "invoice 42"/);
+  assert.match(text, /^VALID on Zcash mainnet: .* paid 0\.0003 ZEC to u1xyz with memo "invoice 42"/);
   assert.match(text, /Not revealed: the sender's address/);
 });
 
@@ -33,6 +35,12 @@ test("a refusal leads with the first failed check", () => {
     ],
   };
   assert.match(describeVerdict(refused), /^REFUSED: Bound to your challenge: signed over a different challenge\./);
+});
+
+test("a testnet receipt says so, and an unbound one warns", () => {
+  const text = describeVerdict({ ...valid, network: "test", bound: false });
+  assert.match(text, /^VALID on Zcash testnet \(test coins, no value\): .* paid 0\.0003 TAZ/);
+  assert.match(text, /NOT BOUND to a challenge of yours/);
 });
 
 test("API errors surface the server's reason", async () => {

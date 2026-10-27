@@ -205,6 +205,7 @@ fn an_honest_disclosure_proves_the_payment_and_nothing_else() {
     let d = disclose(p, CHALLENGE, OutputSelection::Payments).unwrap();
     let v = check(&d, p, Some(CHALLENGE));
     assert!(v.valid, "{:#?}", v.checks);
+    assert!(v.bound && v.fresh);
     assert!(failed(&v).is_empty());
     let r = v.revealed.as_ref().unwrap();
     assert_eq!(r.payments.len(), 1, "change is not disclosed by default");
@@ -254,6 +255,7 @@ fn without_an_expected_challenge_the_verdict_warns_about_replay() {
     let d = disclose(p, CHALLENGE, OutputSelection::Payments).unwrap();
     let v = check(&d, p, None);
     assert!(v.valid);
+    assert!(!v.bound, "nothing was checked against a challenge of the verifier's");
     let c = v.checks.iter().find(|c| c.id == "challenge").unwrap();
     assert_eq!(c.status, CheckStatus::Warn);
 }
@@ -404,5 +406,6 @@ fn an_expired_challenge_is_flagged() {
     let d = disclose(p, stale, OutputSelection::Payments).unwrap();
     let v = check(&d, p, Some(stale));
     assert!(v.valid, "expiry is the verifier's call, reported as a warning");
+    assert!(v.bound && !v.fresh);
     assert_eq!(v.checks.iter().find(|c| c.id == "expiry").unwrap().status, CheckStatus::Warn);
 }

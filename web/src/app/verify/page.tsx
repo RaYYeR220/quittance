@@ -4,25 +4,26 @@ import { useEffect, useState } from "react";
 import { Receipt } from "@/components/Receipt";
 import { VerifierStatus } from "@/components/VerifierStatus";
 import { api } from "@/lib/api";
-import type { Verdict } from "@/lib/types";
+import type { Network, Verdict } from "@/lib/types";
 import { verifyHere, warmUp, type Result } from "@/lib/verifier";
 import styles from "../page-shell.module.css";
 
 export default function VerifyPage() {
   const [text, setText] = useState("");
   const [challenge, setChallenge] = useState("");
+  const [network, setNetwork] = useState<Network>("main");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
   const [serverVerdict, setServerVerdict] = useState<Verdict | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(receipt: string, expected: string) {
+  async function run(receipt: string, expected: string, net: Network = "main") {
     setBusy(true);
     setError(null);
     setResult(null);
     setServerVerdict(null);
     try {
-      setResult(await verifyHere(receipt, expected.trim() || undefined));
+      setResult(await verifyHere(receipt, expected.trim() || undefined, net));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -44,7 +45,7 @@ export default function VerifyPage() {
   async function runOnServer() {
     setError(null);
     try {
-      setServerVerdict(await api.verify(text.trim(), challenge.trim() || undefined));
+      setServerVerdict(await api.verify(text.trim(), challenge.trim() || undefined, network));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -70,7 +71,7 @@ export default function VerifyPage() {
         className={styles.form}
         onSubmit={(e) => {
           e.preventDefault();
-          void run(text, challenge);
+          void run(text, challenge, network);
         }}
       >
         <label className={styles.field}>
@@ -89,10 +90,19 @@ export default function VerifyPage() {
             }}
           />
         </label>
-        <label className={styles.field}>
-          <span>Your challenge (optional)</span>
-          <input id="challenge" value={challenge} onChange={(e) => setChallenge(e.target.value)} placeholder="quittance:v1|…" spellCheck={false} />
-        </label>
+        <div className={styles.row}>
+          <label className={styles.field}>
+            <span>Your challenge (optional)</span>
+            <input id="challenge" value={challenge} onChange={(e) => setChallenge(e.target.value)} placeholder="quittance:v1|…" spellCheck={false} />
+          </label>
+          <label className={styles.field} style={{ flex: "0 0 11rem" }}>
+            <span>Accept payments on</span>
+            <select id="network" value={network} onChange={(e) => setNetwork(e.target.value as Network)}>
+              <option value="main">Mainnet</option>
+              <option value="test">Testnet</option>
+            </select>
+          </label>
+        </div>
         <div className={styles.row}>
           <button type="submit" className={styles.primary} disabled={busy || !text.trim()}>
             {busy ? "Checking…" : "Verify receipt"}
