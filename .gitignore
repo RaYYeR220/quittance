@@ -36,3 +36,6 @@ design-ref/
 variants/
 screencast/
 .vercel
+
+# built browser verifier is committed; Linux wasm build cache is not
+target-wasm-linux/

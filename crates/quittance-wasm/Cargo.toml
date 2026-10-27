@@ -1,6 +1,7 @@
 [package]
 name = "quittance-wasm"
 version = "0.1.0"
+description = "Verify ZIP 311 Ironwood payment disclosures in the browser"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
@@ -10,3 +11,13 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 zip311 = { path = "../zip311", default-features = false }
+orchard.workspace = true
+zcash_primitives.workspace = true
+zcash_protocol.workspace = true
+serde_json.workspace = true
+hex.workspace = true
+wasm-bindgen = "=0.2.129"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom_02 = { package = "getrandom", version = "0.2", features = ["js"] }
+getrandom_04 = { package = "getrandom", version = "0.4", features = ["wasm_js"] }

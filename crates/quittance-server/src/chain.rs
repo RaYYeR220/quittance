@@ -5,7 +5,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use tonic::transport::{Channel, ClientTlsConfig, Endpoint};
-use zcash_client_backend::proto::service::{compact_tx_streamer_client::CompactTxStreamerClient, ChainSpec, TxFilter};
+use zcash_client_backend::proto::service::{compact_tx_streamer_client::CompactTxStreamerClient, BlockId, ChainSpec, TxFilter};
 use zcash_primitives::transaction::Transaction;
 use zcash_protocol::consensus::{BlockHeight, BranchId};
 use zip311::Network;
@@ -104,6 +104,31 @@ impl Chain {
                 }
                 Err(status) if status.message().to_lowercase().contains("no such") => return Err(ChainError::NotFound),
                 Err(status) => errors.push(format!("{url}: {}", status.message())),
+            }
+        }
+        Err(ChainError::Unavailable(errors.join("; ")))
+    }
+
+    /// The txids (display order) of the block at `height`. Lets a verifier that
+    /// already holds a transaction confirm it is mined there without telling
+    /// the server which transaction it is interested in.
+    pub async fn block_txids(&self, network: Network, height: u32) -> Result<Vec<String>, ChainError> {
+        let mut errors = vec![];
+        for (url, mut client) in self.clients(network) {
+            match client.get_block(BlockId { height: height as u64, hash: vec![] }).await {
+                Ok(r) => {
+                    return Ok(r
+                        .into_inner()
+                        .vtx
+                        .iter()
+                        .map(|t| {
+                            let mut h = t.txid.clone();
+                            h.reverse();
+                            hex::encode(h)
+                        })
+                        .collect())
+                }
+                Err(s) => errors.push(format!("{url}: {}", s.message())),
             }
         }
         Err(ChainError::Unavailable(errors.join("; ")))

@@ -35,6 +35,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/v1/health", get(health))
         .route("/v1/verify", post(verify))
         .route("/v1/tx/{network}/{txid}", get(transaction))
+        .route("/v1/block/{network}/{height}", get(block))
         .route("/v1/challenges", post(create_challenge))
         .route("/v1/challenges/{id}", get(get_challenge))
         .route("/v1/challenges/{id}/answer", post(answer_challenge))
@@ -186,6 +187,12 @@ async fn transaction(State(s): State<Arc<AppState>>, Path((network, txid)): Path
         Err(ChainError::NotFound) => Err(ApiError(StatusCode::NOT_FOUND, "the chain has no transaction with this txid".into())),
         Err(e) => Err(ApiError(StatusCode::BAD_GATEWAY, e.to_string())),
     }
+}
+
+async fn block(State(s): State<Arc<AppState>>, Path((network, height)): Path<(String, u32)>) -> Result<Json<Value>, ApiError> {
+    let network = parse_network(&network)?;
+    let txids = s.chain.block_txids(network, height).await.map_err(|e| ApiError(StatusCode::BAD_GATEWAY, e.to_string()))?;
+    Ok(Json(json!({ "height": height, "txids": txids })))
 }
 
 #[derive(Deserialize)]
