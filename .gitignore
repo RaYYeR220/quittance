@@ -1,6 +1,7 @@
 # build
 /target/
 **/target/
+target-*/
 node_modules/
 .next/
 out/

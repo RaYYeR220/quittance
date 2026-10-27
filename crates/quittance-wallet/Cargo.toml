@@ -1,9 +1,47 @@
 [package]
 name = "quittance-wallet"
 version = "0.1.0"
+description = "Ironwood-only light wallet that keeps what a ZIP 311 payment disclosure needs"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
 
 [dependencies]
 zip311 = { path = "../zip311" }
+
+orchard.workspace = true
+zcash_primitives.workspace = true
+zcash_protocol.workspace = true
+zcash_address.workspace = true
+zcash_keys = { workspace = true, features = ["sapling"] }
+incrementalmerkletree.workspace = true
+shardtree.workspace = true
+hex.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+rand = { workspace = true, features = ["std", "sys_rng"] }
+
+zcash_client_backend = { version = "0.25.0", features = [
+    "lightwalletd-tonic-tls-webpki-roots",
+    "lightwalletd-tonic-transport",
+    "orchard",
+] }
+zcash_client_sqlite = { version = "0.23.0", features = ["orchard"] }
+zcash_proofs = { version = "0.31.0", features = ["bundled-prover"] }
+zip321 = "0.10.0"
+
+bip0039 = "0.13"
+secrecy = "0.8"
+zip32 = "0.3"
+sapling = { package = "sapling-crypto", version = "0.9" }
+futures-util = "0.3"
+nonempty = { version = "0.11", default-features = false }
+rusqlite = { version = "0.37", features = ["bundled"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
+tonic = { version = "0.14", features = ["tls-webpki-roots", "transport"] }
+zeroize = "1"
+
+[dev-dependencies]
+tempfile = "3"

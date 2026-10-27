@@ -1,0 +1,24 @@
+{
+  "name": "quittance-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for checking Zcash payment disclosures (ZIP 311, Ironwood) from an agent",
+  "license": "MIT",
+  "type": "module",
+  "bin": { "quittance-mcp": "dist/index.js" },
+  "main": "dist/index.js",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node dist/index.js",
+    "test": "node --test dist/*.test.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.9.1",
+    "typescript": "5.9.3"
+  }
+}
