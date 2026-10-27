@@ -68,7 +68,7 @@ means its proofs are not evidence), a transaction that isn't mined.
 | Path | What |
 |---|---|
 | `crates/zip311` | the library: disclosure format and encoding, `prove_reproved`, `verify`, test suite |
-| `crates/quittance-wallet` | a light-wallet engine on `zcash_client_sqlite` that only uses Ironwood and saves a disclosure kit at send time |
+| `crates/quittance-wallet` | a light-wallet engine on `zcash_client_sqlite` that only pays from and to Ironwood, saves a disclosure kit at send time, and can shield funds that arrive at a transparent address |
 | `crates/quittance-cli` | the `quittance` command: wallet, `prove`, `verify`, `challenge` |
 | `crates/quittance-server` | HTTP API: verify, transaction and block lookup, "ask for proof" challenges, live demo |
 | `crates/quittance-wasm` | the verifier compiled to WebAssembly for the browser |

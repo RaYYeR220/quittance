@@ -56,10 +56,13 @@ The disclosure kit (spent notes and their Merkle paths at the transaction's
 anchor) stays in the wallet directory. It is as sensitive as the wallet's own
 database. The mnemonic is never logged or sent anywhere.
 
-The wallet only ever spends from and sends to the Ironwood pool. It refuses
-transparent recipients, TEX addresses, and any proposal that would touch the
-transparent, Sapling or Orchard pools, so a payment made with it has no
-transparent leg to leak.
+Payments made with the wallet only spend from and send to the Ironwood pool. It
+refuses transparent recipients, TEX addresses, and any payment that would touch
+the transparent, Sapling or Orchard pools, so a payment has no transparent leg
+to leak. The one exception is funding: if you ask for a transparent address
+(for an exchange or bridge that can only pay one), `wallet shield` moves what
+arrives there into Ironwood. That deposit and the shielding are public, as any
+transparent receipt is; nothing else in the wallet touches transparent funds.
 
 ### Verifying in the browser (`/verify`)
 
