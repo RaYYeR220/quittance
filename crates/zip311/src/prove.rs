@@ -140,7 +140,7 @@ pub fn prove_bundle<V, R: Rng + CryptoRng>(
         .map_err(|e| ProveError::Build(format!("{e:?}")))?;
     for w in spends {
         builder
-            .add_spend(fvk.clone(), w.note.clone(), w.merkle_path.clone())
+            .add_spend(fvk.clone(), w.note, w.merkle_path.clone())
             .map_err(|e| ProveError::Build(format!("{e:?}")))?;
     }
     let (unproven, _) = builder

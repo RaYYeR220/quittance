@@ -35,6 +35,9 @@ pub const MAX_ACTIONS: usize = 64;
 pub const MAX_PROOF: usize = 1 << 17;
 pub const MAX_TX: usize = 2 << 20;
 
+/// The signed fields of one re-proven action: index, `cv_net`, `rk`, `cmx`.
+pub(crate) type ReprovedParts = (u32, [u8; 32], [u8; 32], [u8; 32]);
+
 /// One action of the re-proof bundle, tied to the transaction action whose
 /// nullifier it re-proves.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -84,7 +87,7 @@ pub struct PaymentDisclosure {
 impl PaymentDisclosure {
     /// The bytes the digest commits to.
     pub fn unsigned_bytes(&self) -> Vec<u8> {
-        let reproved: Vec<(u32, [u8; 32], [u8; 32], [u8; 32])> = self
+        let reproved: Vec<ReprovedParts> = self
             .reproved
             .iter()
             .flat_map(|r| r.actions.iter().map(|a| (a.tx_action_index, a.cv_net, a.rk, a.cmx)))
@@ -211,7 +214,7 @@ pub(crate) fn unsigned_bytes(
     txid: &[u8; 32],
     height: u32,
     msg: &[u8],
-    reproved: &[(u32, [u8; 32], [u8; 32], [u8; 32])],
+    reproved: &[ReprovedParts],
     resigned: &[u32],
     outputs: &[(u32, [u8; 32])],
 ) -> Vec<u8> {

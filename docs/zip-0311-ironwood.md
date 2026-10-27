@@ -155,8 +155,9 @@ at `height`.
 
 Text form: Bech32m of the bytes under the human-readable part `zpd` (mainnet) or
 `zpdtest` (testnet), with the length limit lifted as in ZIP 316. A typical
-single-spend, single-output disclosure is about 5.2 KB of bytes and 8,400
-characters of text; the proof is most of it.
+single-spend, single-output disclosure is about 5.3 KB of bytes and 8,500
+characters of text (about 23,000 with the transaction attached); the proof is
+most of it.
 
 Link form: `https://<verifier app>/v#<text>`. The fragment never leaves the
 browser, so the hosting server does not see the disclosure.
