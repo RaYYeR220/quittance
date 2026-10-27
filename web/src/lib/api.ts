@@ -45,6 +45,7 @@ export const api = {
     call<DemoProof>("/v1/demo/prove", { method: "POST", body: JSON.stringify({ challenge, payment }) }),
   demoForge: (challenge: string, payment = 0) =>
     call<DemoForgery>("/v1/demo/forge", { method: "POST", body: JSON.stringify({ challenge, payment }) }),
+  demoOrchard: (disclosure: string) => call<{ disclosure: string }>("/v1/demo/orchard", { method: "POST", body: JSON.stringify({ disclosure }) }),
   gallery: () => call<GalleryItem[]>("/v1/gallery"),
 };
 

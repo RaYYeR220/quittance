@@ -18,7 +18,10 @@ export type Request =
   | { id: number; op: "verify"; text: string; rawTxHex: string; minedHeight?: number; expected?: string; network?: string }
   | { id: number; op: "tamper"; text: string; how: string; newChallenge?: string };
 
-export type Response = { id: number; ok: true; value: string } | { id: number; ok: false; error: string } | { id: -1; ready: true; ms: number };
+export type Response =
+  | { kind: "result"; id: number; ok: true; value: string }
+  | { kind: "result"; id: number; ok: false; error: string }
+  | { kind: "ready"; ms: number };
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
@@ -28,7 +31,7 @@ const loading: Promise<WasmModule> = (async () => {
   await mod.default({ module_or_path: new URL("/wasm/quittance_bg.wasm", ctx.location.origin) });
   const t = performance.now();
   mod.prepare();
-  ctx.postMessage({ id: -1, ready: true, ms: Math.round(performance.now() - t) } satisfies Response);
+  ctx.postMessage({ kind: "ready", ms: Math.round(performance.now() - t) } satisfies Response);
   return mod;
 })();
 
@@ -48,8 +51,8 @@ ctx.onmessage = async (e: MessageEvent<Request>) => {
         value = mod.tamper(req.text, req.how, req.newChallenge);
         break;
     }
-    ctx.postMessage({ id: req.id, ok: true, value } satisfies Response);
+    ctx.postMessage({ kind: "result", id: req.id, ok: true, value } satisfies Response);
   } catch (err) {
-    ctx.postMessage({ id: req.id, ok: false, error: err instanceof Error ? err.message : String(err) } satisfies Response);
+    ctx.postMessage({ kind: "result", id: req.id, ok: false, error: err instanceof Error ? err.message : String(err) } satisfies Response);
   }
 };

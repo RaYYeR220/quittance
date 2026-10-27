@@ -1,0 +1,37 @@
+.section {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 52rem;
+  min-width: 0;
+}
+
+.pre {
+  margin: 0;
+  font: 400 0.82rem/1.6 var(--q-mono);
+  background: var(--q-field);
+  border: 1px solid var(--q-rule);
+  padding: 1rem 1.1rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.table {
+  overflow-x: auto;
+}
+
+.table table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.table td {
+  border-top: 1px solid var(--q-rule);
+  padding: 0.6rem 0.8rem 0.6rem 0;
+  vertical-align: top;
+}
+
+.table code {
+  font-family: var(--q-mono);
+  white-space: nowrap;
+}

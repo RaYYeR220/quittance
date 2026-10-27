@@ -1,0 +1,34 @@
+.status {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font: 400 0.8rem/1.4 var(--q-mono);
+  color: var(--q-dim);
+}
+
+.lamp {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--q-warn);
+  flex: none;
+  animation: blink 1.2s steps(2, jump-none) infinite;
+}
+
+.status[data-ready="true"] .lamp {
+  background: var(--q-ok);
+  animation: none;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lamp {
+    animation: none;
+  }
+}

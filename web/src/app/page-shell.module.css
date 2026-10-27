@@ -1,0 +1,160 @@
+.page {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding-block: clamp(2.5rem, 6vw, 5rem) 6rem;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 2rem;
+  align-content: start;
+}
+
+.intro {
+  display: grid;
+  gap: 0.9rem;
+  max-width: 44rem;
+}
+
+.eyebrow,
+.label {
+  margin: 0;
+  font: 500 0.72rem/1.2 var(--q-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--q-dim);
+}
+
+.title {
+  margin: 0;
+  font: 500 clamp(2.2rem, 5vw, 3.6rem) / 1.02 var(--q-display);
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.h2 {
+  margin: 0;
+  font: 500 clamp(1.5rem, 3vw, 2.1rem) / 1.1 var(--q-display);
+  letter-spacing: -0.025em;
+}
+
+.lede {
+  margin: 0;
+  color: var(--q-dim);
+  font-size: 1.05rem;
+  line-height: 1.55;
+  max-width: 62ch;
+}
+
+.form,
+.panel {
+  display: grid;
+  gap: 1rem;
+  max-width: 44rem;
+  min-width: 0;
+}
+
+.panel {
+  border: 1px solid var(--q-rule);
+  background: var(--q-panel);
+  padding: 1.1rem 1.25rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+}
+
+.row > .field {
+  flex: 1 1 14rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.field > span {
+  font: 500 0.72rem/1.2 var(--q-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--q-dim);
+}
+
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  font: 400 0.92rem/1.45 var(--q-mono);
+  color: var(--q-ink);
+  background: var(--q-field);
+  border: 1px solid var(--q-rule);
+  border-radius: var(--q-radius);
+  padding: 0.7rem 0.8rem;
+}
+
+.field textarea {
+  resize: vertical;
+  word-break: break-all;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible,
+.field select:focus-visible,
+.primary:focus-visible,
+.ghost:focus-within,
+.ghostButton:focus-visible {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 2px;
+}
+
+.primary {
+  justify-self: start;
+  font: 600 0.95rem/1 var(--q-sans);
+  color: var(--q-on-accent);
+  background: var(--q-accent);
+  border: 0;
+  border-radius: var(--q-radius);
+  padding: 0.95rem 1.3rem;
+  cursor: pointer;
+}
+
+.primary:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.ghost,
+.ghostButton {
+  font: 500 0.88rem/1 var(--q-sans);
+  color: var(--q-ink);
+  background: transparent;
+  border: 1px solid var(--q-rule);
+  border-radius: var(--q-radius);
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+}
+
+.code {
+  margin: 0;
+  font: 400 0.85rem/1.5 var(--q-mono);
+  overflow-wrap: anywhere;
+  background: var(--q-field);
+  border: 1px solid var(--q-rule);
+  padding: 0.7rem 0.8rem;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--q-dim);
+}
+
+.error {
+  margin: 0;
+  color: var(--q-bad);
+  font: 400 0.9rem/1.5 var(--q-mono);
+  overflow-wrap: anywhere;
+}

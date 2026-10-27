@@ -17,7 +17,7 @@ function boot(): Worker {
   worker = new Worker(new URL("./verifier.worker.ts", import.meta.url), { type: "module" });
   worker.onmessage = (e: MessageEvent<Response>) => {
     const msg = e.data;
-    if (msg.id === -1) {
+    if (msg.kind === "ready") {
       readyMs = msg.ms;
       readyListeners.forEach((f) => f(msg.ms));
       return;
@@ -46,7 +46,9 @@ export function onReady(f: (ms: number) => void): () => void {
   return () => readyListeners.delete(f);
 }
 
-function rpc(req: Omit<Request, "id">): Promise<string> {
+type WithoutId<T> = T extends unknown ? Omit<T, "id"> : never;
+
+function rpc(req: WithoutId<Request>): Promise<string> {
   const w = boot();
   const id = nextId++;
   return new Promise((resolve, reject) => {
