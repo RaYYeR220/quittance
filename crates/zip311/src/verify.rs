@@ -184,7 +184,7 @@ fn run<V>(
 
     let Some(bundle) = ironwood else {
         let why = if has_orchard {
-            "the transaction spends from the Orchard pool. Orchard proofs are not accepted as evidence: the Orchard circuit had a soundness bug (fixed by NU6.2/NU6.3 in 2026), so a proof under it doesn't show that a note was really spent"
+            "the payment is in the Orchard pool. Orchard proofs are not accepted as evidence: the Orchard circuit had a soundness bug (fixed by NU6.2 and NU6.3 in 2026), so a proof under it doesn't show that a note was really spent"
         } else {
             "the transaction has no Ironwood bundle; only Ironwood payments can be disclosed"
         };

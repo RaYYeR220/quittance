@@ -42,6 +42,7 @@ pub fn router(state: Arc<AppState>) -> Router {
         .route("/v1/demo", get(demo_info))
         .route("/v1/demo/prove", post(demo_prove))
         .route("/v1/demo/forge", post(demo_forge))
+        .route("/v1/demo/orchard", post(demo_orchard))
         .route("/v1/gallery", get(gallery))
         .with_state(state)
 }
@@ -286,13 +287,12 @@ async fn demo_prove(
         return Err(bad("keep the challenge under 512 bytes"));
     }
     let demo = s.demo.as_ref().ok_or_else(|| ApiError(StatusCode::SERVICE_UNAVAILABLE, "the live demo is not configured".into()))?;
-    let out = demo.prove(&s.chain, req.challenge.into_bytes(), req.payment.unwrap_or(0)).await.map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let out = demo.prove(req.challenge.into_bytes(), req.payment.unwrap_or(0)).await.map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e))?;
     Ok(Json(out))
 }
 
 #[derive(Deserialize)]
 struct DemoForge {
-    challenge: String,
     payment: Option<usize>,
 }
 
@@ -306,8 +306,21 @@ async fn demo_forge(
 ) -> Result<Json<Value>, ApiError> {
     s.limiter.check(client_ip(&headers, peer), "demo", 12)?;
     let demo = s.demo.as_ref().ok_or_else(|| ApiError(StatusCode::SERVICE_UNAVAILABLE, "the live demo is not configured".into()))?;
-    let out = demo.forge_as_recipient(&s.chain, req.challenge.into_bytes(), req.payment.unwrap_or(0)).await.map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let out = demo.forge_as_recipient(req.payment.unwrap_or(0)).await.map_err(|e| ApiError(StatusCode::INTERNAL_SERVER_ERROR, e))?;
     Ok(Json(out))
+}
+
+#[derive(Deserialize)]
+struct DemoOrchard {
+    disclosure: String,
+}
+
+/// Retargets a demo disclosure at a real Orchard-pool transaction, so the
+/// visitor can watch the verifier refuse it at the pool check.
+async fn demo_orchard(State(s): State<Arc<AppState>>, Json(req): Json<DemoOrchard>) -> Result<Json<Value>, ApiError> {
+    let demo = s.demo.as_ref().ok_or_else(|| ApiError(StatusCode::SERVICE_UNAVAILABLE, "the live demo is not configured".into()))?;
+    let text = demo.orchard_variant(&req.disclosure).map_err(bad)?;
+    Ok(Json(json!({ "disclosure": text })))
 }
 
 async fn gallery(State(s): State<Arc<AppState>>) -> Json<Value> {

@@ -12,6 +12,7 @@ path = "src/main.rs"
 [dependencies]
 zip311 = { path = "../zip311" }
 orchard.workspace = true
+quittance-wallet = { path = "../quittance-wallet" }
 zcash_client_backend = { version = "0.25", default-features = false, features = ["lightwalletd-tonic", "lightwalletd-tonic-tls-webpki-roots"] }
 zcash_primitives.workspace = true
 zcash_protocol.workspace = true

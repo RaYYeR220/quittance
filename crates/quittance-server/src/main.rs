@@ -42,12 +42,26 @@ async fn main() {
         .and_then(|b| serde_json::from_slice(&b).ok())
         .unwrap_or_else(|| serde_json::json!([]));
     let vk = tokio::task::spawn_blocking(zip311::verifying_key).await.expect("verifying key");
+    let demo = match (std::env::var("QUITTANCE_DEMO_SENDER"), std::env::var("QUITTANCE_DEMO_PAYEE"), data.as_ref()) {
+        (Ok(sender), Ok(payee), Some(data)) => {
+            let pk = Arc::new(tokio::task::spawn_blocking(zip311::proving_key).await.expect("proving key"));
+            let servers = endpoints.get(&Network::Main).cloned().unwrap_or_default();
+            match demo::Demo::load(data, sender.into(), payee.into(), servers, pk) {
+                Ok(d) => Some(d),
+                Err(e) => {
+                    tracing::warn!("live demo disabled: {e}");
+                    None
+                }
+            }
+        }
+        _ => None,
+    };
 
     let state = Arc::new(api::AppState {
         chain,
         vk,
         tickets: challenges::Store::open(data.as_ref().map(|d| d.join("tickets.json"))),
-        demo: None,
+        demo,
         app_origin: std::env::var("QUITTANCE_APP_ORIGIN").unwrap_or_else(|_| "http://localhost:3000".into()),
         gallery,
         limiter: api::Limiter::new(),

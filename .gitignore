@@ -39,3 +39,4 @@ screencast/
 
 # built browser verifier is committed; Linux wasm build cache is not
 target-wasm-linux/
+target-linux/
