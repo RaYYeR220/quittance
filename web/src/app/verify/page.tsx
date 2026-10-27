@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Receipt } from "@/components/Receipt";
 import { VerifierStatus } from "@/components/VerifierStatus";
+import { api } from "@/lib/api";
+import type { Verdict } from "@/lib/types";
 import { verifyHere, warmUp, type Result } from "@/lib/verifier";
 import styles from "../page-shell.module.css";
 
@@ -11,12 +13,14 @@ export default function VerifyPage() {
   const [challenge, setChallenge] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
+  const [serverVerdict, setServerVerdict] = useState<Verdict | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function run(receipt: string, expected: string) {
     setBusy(true);
     setError(null);
     setResult(null);
+    setServerVerdict(null);
     try {
       setResult(await verifyHere(receipt, expected.trim() || undefined));
     } catch (e) {
@@ -36,6 +40,15 @@ export default function VerifyPage() {
       void run(fromHash, "");
     }
   }, []);
+
+  async function runOnServer() {
+    setError(null);
+    try {
+      setServerVerdict(await api.verify(text.trim(), challenge.trim() || undefined));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   async function onFile(f: File | undefined) {
     if (!f) return;
@@ -84,6 +97,9 @@ export default function VerifyPage() {
           <button type="submit" className={styles.primary} disabled={busy || !text.trim()}>
             {busy ? "Checking…" : "Verify receipt"}
           </button>
+          <button type="button" className={styles.ghostButton} onClick={() => void runOnServer()} disabled={!text.trim()}>
+            Check on our server instead
+          </button>
           <label className={styles.ghost}>
             Open a .zpd file
             <input id="file" type="file" accept=".zpd,.txt" hidden onChange={(e) => void onFile(e.target.files?.[0])} />
@@ -95,6 +111,18 @@ export default function VerifyPage() {
         <p className={styles.error} role="alert">
           {error}
         </p>
+      )}
+      {busy && !serverVerdict && (
+        <p className={styles.note}>
+          Checking in your browser. The first check builds the verifier, which takes a few seconds; later ones are instant. If you can&apos;t wait, check on our server
+          instead: it&apos;s faster, but our server then sees the receipt.
+        </p>
+      )}
+      {serverVerdict && !result && (
+        <>
+          <p className={styles.note}>Checked on our server.{busy ? " The check in your browser is still running and will replace this." : ""}</p>
+          <Receipt verdict={serverVerdict} />
+        </>
       )}
       {result && <Receipt verdict={result.verdict} lookup={result.lookup} />}
     </main>
