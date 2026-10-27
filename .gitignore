@@ -1,0 +1,37 @@
+# build
+/target/
+**/target/
+node_modules/
+.next/
+out/
+dist/
+*.wasm.map
+pkg/
+
+# local state, keys, wallets
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-journal
+*.db
+wallets/
+secrets/
+*.key
+*.age
+
+# working files (never published)
+BRIEF.md
+ALTERNATIVES.md
+NOTES.md
+DESIGN.md
+*-internal/
+*-backup*
+*.bundle
+scratch/
+ui-prototypes/
+mockups/
+design-ref/
+variants/
+screencast/
+.vercel

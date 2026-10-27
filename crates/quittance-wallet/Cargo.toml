@@ -1,0 +1,9 @@
+[package]
+name = "quittance-wallet"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dependencies]
+zip311 = { path = "../zip311" }

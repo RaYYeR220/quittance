@@ -1,0 +1,31 @@
+[package]
+name = "zip311"
+version = "0.1.0"
+description = "ZIP 311 payment disclosures for Zcash Ironwood: prove one shielded payment without a viewing key"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = ["multicore"]
+multicore = ["orchard/multicore"]
+
+[dependencies]
+orchard.workspace = true
+zcash_primitives.workspace = true
+zcash_protocol.workspace = true
+zcash_address.workspace = true
+zcash_note_encryption.workspace = true
+blake2b_simd.workspace = true
+bech32.workspace = true
+rand.workspace = true
+hex.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+serde_json.workspace = true
+shardtree.workspace = true
+incrementalmerkletree.workspace = true
+rand = { workspace = true, features = ["std", "std_rng", "sys_rng"] }

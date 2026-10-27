@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = ["crates/zip311", "crates/quittance-wallet", "crates/quittance-cli", "crates/quittance-wasm"]
+
+[workspace.package]
+edition = "2021"
+rust-version = "1.89"
+license = "MIT"
+repository = "https://github.com/RaYYeR220/quittance"
+
+[workspace.dependencies]
+orchard = { version = "0.16", default-features = false, features = ["circuit", "std"] }
+zcash_primitives = { version = "0.31", default-features = false }
+zcash_protocol = "0.11"
+zcash_address = "0.14"
+zcash_keys = { version = "0.17", features = ["orchard"] }
+zcash_note_encryption = "0.5.1"
+blake2b_simd = "1"
+bech32 = { version = "0.11", default-features = false, features = ["alloc"] }
+rand = { version = "0.10", default-features = false }
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+shardtree = "0.8"
+incrementalmerkletree = "0.9"
+
+[profile.dev.package."*"]
+opt-level = 3
+
+[profile.release]
+lto = "thin"
