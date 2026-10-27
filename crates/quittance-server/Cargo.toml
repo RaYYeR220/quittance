@@ -1,0 +1,29 @@
+[package]
+name = "quittance-server"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "quittance-server"
+path = "src/main.rs"
+
+[dependencies]
+zip311 = { path = "../zip311" }
+orchard.workspace = true
+zcash_client_backend = { version = "0.25", default-features = false, features = ["lightwalletd-tonic", "lightwalletd-tonic-tls-webpki-roots"] }
+zcash_primitives.workspace = true
+zcash_protocol.workspace = true
+tonic = { version = "0.14", default-features = false }
+axum = "0.8.9"
+tokio = { version = "1.54", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "signal"] }
+tower-http = { version = "0.7", features = ["cors", "limit", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde.workspace = true
+serde_json.workspace = true
+hex.workspace = true
+rand = { workspace = true, features = ["std", "std_rng", "sys_rng"] }
+thiserror.workspace = true
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }

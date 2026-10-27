@@ -3,7 +3,7 @@ use zcash_protocol::consensus::{self, NetworkType};
 
 /// The network a disclosure is about. It fixes the SLIP-44 coin type mixed
 /// into the signed digest, so a disclosure can't be moved between networks.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Network {
     Main,

@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/zip311", "crates/quittance-wallet", "crates/quittance-cli", "crates/quittance-wasm"]
+members = ["crates/zip311", "crates/quittance-wallet", "crates/quittance-cli", "crates/quittance-wasm", "crates/quittance-server"]
 
 [workspace.package]
 edition = "2021"
