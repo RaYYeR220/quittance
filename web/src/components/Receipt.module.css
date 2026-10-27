@@ -1,172 +1,291 @@
+/*
+ * A receipt is a certificate: proven lines are inked with a copper tick, what
+ * it withholds sits in a dark half as engraved voids, and every check is
+ * entered in a register underneath. The frame's hairline takes the verdict's colour.
+ */
 .receipt {
-  display: grid;
-  gap: 0;
-  border: 1px solid var(--q-rule);
-  background: var(--q-panel);
-  color: var(--q-ink);
-  max-width: 44rem;
+  --tone: var(--q-accent);
+  --tone-rgb: var(--q-accent-rgb);
+  --c: 22px;
+  container-type: inline-size;
   width: 100%;
+  max-width: 1120px;
+  padding: 1px;
+  background: rgb(var(--tone-rgb) / 0.5);
+  clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
+}
+
+.receipt[data-verdict="warn"] {
+  --tone: var(--q-warn);
+  --tone-rgb: 216 180 106;
+}
+
+.receipt[data-verdict="refused"] {
+  --tone: var(--q-bad);
+  --tone-rgb: 217 112 95;
+}
+
+.sheet {
+  --c: 21.6px;
+  position: relative;
+  background: var(--q-panel);
+  clip-path: polygon(var(--c) 0, calc(100% - var(--c)) 0, 100% var(--c), 100% calc(100% - var(--c)), calc(100% - var(--c)) 100%, var(--c) 100%, 0 calc(100% - var(--c)), 0 var(--c));
 }
 
 .head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.25rem;
+  gap: 12px 22px;
+  padding: 22px 32px;
   border-bottom: 1px solid var(--q-rule);
 }
 
 .stamp {
-  font: 600 0.8rem/1 var(--q-mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid currentColor;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font: 600 12.5px/1 var(--q-mono);
+  letter-spacing: 0.02em;
+  color: var(--tone);
+  border: 1px solid var(--tone);
 }
 
+/* Proven is the lit state: a solid copper stamp. */
 .receipt[data-verdict="proven"] .stamp {
-  color: var(--q-ok);
+  color: var(--q-on-accent);
+  background: var(--q-accent);
 }
+
 .receipt[data-verdict="warn"] .stamp {
-  color: var(--q-warn);
-}
-.receipt[data-verdict="refused"] .stamp {
-  color: var(--q-bad);
+  border-style: dashed;
 }
 
 .net {
-  font: 400 0.8rem/1 var(--q-mono);
+  font: 400 12.5px/1 var(--q-mono);
   color: var(--q-dim);
 }
 
-.block {
-  padding: 1.1rem 1.25rem;
-  border-bottom: 1px solid var(--q-rule);
+.serial {
+  margin-left: auto;
+  font: 400 11.5px/1 var(--q-mono);
+  letter-spacing: 0.16em;
+  color: var(--q-faint);
+}
+
+/* ---- proven | not revealed ---- */
+
+.halves {
   display: grid;
-  gap: 0.9rem;
+  grid-template-columns: 7fr 5fr;
+  border-bottom: 1px solid var(--q-rule);
+}
+
+.proven,
+.withheld {
+  padding: 30px 32px 34px;
   min-width: 0;
 }
 
-.lines {
-  display: grid;
-  gap: 0.55rem;
-  margin: 0;
+.halfTitle {
+  margin: 0 0 18px;
+  font: 500 22px/1.2 var(--q-display);
+  font-variation-settings: "opsz" 120;
+  letter-spacing: -0.01em;
 }
 
-.lines > div {
+.lines,
+.voids {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lines li {
   display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: 22px 8.6em minmax(0, 1fr);
+  gap: 0 10px;
   align-items: baseline;
+  padding: 12px 0 11px;
+  border-bottom: 1px solid var(--q-rule);
 }
 
-.lines dt {
-  font: 500 0.72rem/1.3 var(--q-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--q-dim);
+.lines li:first-child {
+  padding-top: 2px;
 }
 
-.lines dd {
-  margin: 0;
+.tick {
+  font: 500 15px/1 var(--q-sans);
+  color: var(--q-accent);
+}
+
+.receipt[data-verdict="warn"] .lines li:last-child .tick {
+  color: var(--q-warn);
+}
+
+.key {
+  font-size: 14px;
+  color: var(--q-faint);
+}
+
+.value {
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
+.wide .value {
+  grid-column: 2 / 4;
+  font-size: 16px;
+}
+
 .amount {
-  font: 500 1.6rem/1.1 var(--q-display);
+  font: 500 32px/1.05 var(--q-display);
+  font-variation-settings: "opsz" 300;
+  font-variant-numeric: lining-nums;
   letter-spacing: -0.02em;
 }
 
 .mono {
-  font-family: var(--q-mono);
-  font-size: 0.88rem;
+  font: 400 14.5px/1.5 var(--q-mono);
 }
 
-.lines a {
-  color: inherit;
-  text-underline-offset: 3px;
+.memo {
+  font: 500 20px/1.3 var(--q-display);
+  font-variation-settings: "opsz" 120;
+  font-variant-numeric: lining-nums;
+}
+
+.who {
+  font-weight: 600;
+  font-size: 15.5px;
 }
 
 .dim {
+  color: var(--q-faint);
+  font: 400 14.5px/1.4 var(--q-sans);
+}
+
+.txLink {
+  margin-left: 10px;
+  font: 400 13.5px/1.4 var(--q-sans);
   color: var(--q-dim);
+  text-decoration-color: var(--q-ghost);
+  white-space: nowrap;
+}
+
+.txLink:hover {
+  color: var(--q-ink);
+  text-decoration-color: var(--q-accent);
 }
 
 .warn {
-  margin: 0;
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  font-size: 14.5px;
+  line-height: 1.55;
   color: var(--q-warn);
-  font-size: 0.9rem;
+  background: var(--q-field);
+  border-left: 2px solid var(--q-warn);
 }
 
-.reason {
-  margin: 0;
-  line-height: 1.5;
-}
-.reason strong {
-  color: var(--q-bad);
-}
-
-.sub {
-  margin: 0;
-  font: 500 0.72rem/1 var(--q-mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--q-dim);
-}
-
-.void {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 0.4rem;
-}
-
-.void li {
-  color: var(--q-dim);
-  padding-left: 1.4rem;
+.withheld {
   position: relative;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(207, 216, 204, 0.06) 1px, transparent 1.5px) 0 0 / 9px 9px,
+    var(--q-field);
+  border-left: 1px solid var(--q-rule);
 }
 
-.void li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.62em;
-  width: 0.8rem;
-  border-top: 1px dashed var(--q-dim);
+.withheld .halfTitle {
+  color: var(--q-dim);
+}
+
+.voids li {
+  padding: 12px 0 14px;
+  border-bottom: 1px solid rgba(207, 216, 204, 0.07);
+}
+
+.voids li:first-child {
+  padding-top: 2px;
+}
+
+.voids p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--q-faint);
+}
+
+/* Present, authenticated, unreadable. */
+.void {
+  display: block;
+  margin-top: 9px;
+  height: 11px;
+  background: repeating-linear-gradient(-45deg, rgba(207, 216, 204, 0.17) 0 1px, transparent 1px 4px);
+  border-top: 1px solid rgba(207, 216, 204, 0.12);
+  border-bottom: 1px solid rgba(207, 216, 204, 0.12);
+}
+
+/* ---- refused ---- */
+
+.refusal {
+  display: grid;
+  gap: 14px;
+  padding: 30px 32px 32px;
+  border-bottom: 1px solid var(--q-rule);
+}
+
+.reasonTitle {
+  margin: 0;
+  font: 500 clamp(24px, 3vw, 32px)/1.15 var(--q-display);
+  font-variation-settings: "opsz" 300;
+  letter-spacing: -0.02em;
+}
+
+.reasonDetail {
+  margin: 0;
+  max-width: 60rem;
+  padding: 14px 16px;
+  font: 400 14px/1.6 var(--q-mono);
+  overflow-wrap: anywhere;
+  background: var(--q-field);
+  border-left: 2px solid var(--q-bad);
+}
+
+/* ---- the register of checks ---- */
+
+.register {
+  padding: 26px 32px 30px;
+}
+
+.registerTitle {
+  margin: 0 0 14px;
+  font: 400 12.5px/1.4 var(--q-mono);
+  color: var(--q-faint);
 }
 
 .checks {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: grid;
-  gap: 0.5rem;
+  border-top: 1px solid var(--q-rule);
 }
 
 .checks li {
   display: grid;
-  grid-template-columns: 1.4rem minmax(0, 12rem) minmax(0, 1fr);
-  gap: 0.6rem;
+  grid-template-columns: 26px minmax(0, 15rem) minmax(0, 1fr);
+  gap: 4px 14px;
   align-items: baseline;
-  font-size: 0.88rem;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(207, 216, 204, 0.07);
+  font-size: 14.5px;
 }
 
 .mark {
-  font-family: var(--q-mono);
+  font: 500 14px/1 var(--q-mono);
   text-align: center;
-}
-
-.checks li[data-status="pass"] .mark {
-  color: var(--q-ok);
-}
-.checks li[data-status="fail"] .mark,
-.checks li[data-status="fail"] .label {
-  color: var(--q-bad);
-}
-.checks li[data-status="warn"] .mark {
-  color: var(--q-warn);
+  color: var(--q-faint);
 }
 
 .label {
@@ -174,25 +293,111 @@
 }
 
 .detail {
-  color: var(--q-dim);
+  color: var(--q-faint);
   overflow-wrap: anywhere;
 }
 
-.foot {
-  padding: 0.9rem 1.25rem;
-  font: 400 0.8rem/1.5 var(--q-mono);
-  color: var(--q-dim);
+.checks li[data-status="pass"] .mark {
+  color: var(--q-accent);
 }
 
-@media (max-width: 560px) {
-  .lines > div {
+.checks li[data-status="warn"] .mark,
+.checks li[data-status="warn"] .label {
+  color: var(--q-warn);
+}
+
+.checks li[data-status="fail"] .mark,
+.checks li[data-status="fail"] .label {
+  color: var(--q-bad);
+}
+
+/* A failing or cautionary check gets its reason on a recessed plate. */
+.checks li[data-status="fail"] .detail,
+.checks li[data-status="warn"] .detail {
+  grid-column: 2 / 4;
+  margin-top: 6px;
+  padding: 10px 12px;
+  font: 400 13px/1.55 var(--q-mono);
+  color: var(--q-ink);
+  background: var(--q-field);
+  border-left: 2px solid currentColor;
+}
+
+.checks li[data-status="fail"] .detail {
+  border-left-color: var(--q-bad);
+}
+
+.checks li[data-status="warn"] .detail {
+  border-left-color: var(--q-warn);
+}
+
+.checks li[data-status="skip"] {
+  opacity: 0.7;
+}
+
+.foot {
+  padding: 16px 32px 20px;
+  font: 400 12.5px/1.55 var(--q-mono);
+  color: var(--q-faint);
+  border-top: 1px solid var(--q-rule);
+}
+
+@container (max-width: 760px) {
+  .halves {
     grid-template-columns: 1fr;
-    gap: 0.15rem;
   }
+
+  .withheld {
+    border-left: 0;
+    border-top: 1px solid var(--q-rule);
+  }
+}
+
+@container (max-width: 520px) {
+  .head,
+  .proven,
+  .withheld,
+  .refusal,
+  .register,
+  .foot {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .serial {
+    margin-left: 0;
+  }
+
+  .lines li {
+    grid-template-columns: 22px minmax(0, 1fr);
+    gap: 3px 8px;
+  }
+
+  .lines li .value,
+  .wide .value {
+    grid-column: 2;
+  }
+
+  .amount {
+    font-size: 28px;
+  }
+
+  .memo {
+    font-size: 18px;
+  }
+
+  .txLink {
+    display: inline-block;
+    margin-left: 0;
+  }
+
   .checks li {
-    grid-template-columns: 1.4rem minmax(0, 1fr);
+    grid-template-columns: 22px minmax(0, 1fr);
   }
-  .detail {
+
+  .detail,
+  .checks li[data-status="fail"] .detail,
+  .checks li[data-status="warn"] .detail {
     grid-column: 2;
   }
 }

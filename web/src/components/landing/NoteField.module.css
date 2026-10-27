@@ -1,0 +1,331 @@
+.stage {
+  position: absolute;
+  inset: var(--q-band);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.field {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  animation: settle 0.7s 3.5s forwards;
+}
+
+[data-go] .field {
+  animation: fade 1.8s ease-out 0.05s both;
+}
+
+.field canvas {
+  position: absolute;
+  left: -28px;
+  top: -28px;
+  will-change: transform;
+}
+
+[data-go] .far {
+  animation: drift-far 34s ease-in-out infinite;
+}
+
+[data-go] .near {
+  animation: drift-near 34s ease-in-out infinite;
+}
+
+.stage[data-paused] .far,
+.stage[data-paused] .near,
+.stage[data-paused] .pulse {
+  animation-play-state: paused;
+}
+
+@keyframes drift-far {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(13px, -7px, 0);
+  }
+  50% {
+    transform: translate3d(4px, -13px, 0);
+  }
+  75% {
+    transform: translate3d(-11px, -5px, 0);
+  }
+}
+
+@keyframes drift-near {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  25% {
+    transform: translate3d(-4px, 3px, 0);
+  }
+  50% {
+    transform: translate3d(-6px, -1px, 0);
+  }
+  75% {
+    transform: translate3d(-1px, -4px, 0);
+  }
+}
+
+/* The lit note */
+.lit {
+  position: absolute;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  left: -999px;
+  top: -999px;
+}
+
+.halo,
+.ring,
+.core,
+.pulse {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.halo {
+  left: -120px;
+  top: -120px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgb(var(--q-accent-rgb) / 0.24) 0%, rgb(var(--q-accent-rgb) / 0.09) 30%, rgb(var(--q-accent-rgb) / 0) 68%);
+}
+
+.ring {
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgb(var(--q-accent-rgb) / 0.85);
+}
+
+.core {
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--q-accent-hi);
+}
+
+.halo,
+.ring,
+.core {
+  opacity: 0;
+  animation: settle 0.7s 3.5s forwards;
+}
+
+[data-go] .halo,
+[data-go] .ring {
+  animation: fade 1.8s ease-out 0.9s both;
+}
+
+[data-go] .core {
+  animation: fade 1.8s ease-out 0.8s both;
+}
+
+.pulse {
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgb(var(--q-accent-rgb) / 0.8);
+  opacity: 0;
+}
+
+.pulse.pulsing {
+  animation: pulse 2.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.95;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(5.4);
+  }
+}
+
+.tag {
+  position: absolute;
+  left: -0.5px;
+  top: 15px;
+  padding-top: 46px;
+  width: max-content;
+  max-width: 340px;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: settle 0.7s 3.5s forwards;
+}
+
+[data-go] .tag {
+  animation: rise 1s var(--q-ease) 1.15s both;
+}
+
+.tag::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(rgb(var(--q-accent-rgb) / 0.8), rgb(var(--q-accent-rgb) / 0.35));
+}
+
+.tag dl {
+  margin: 0;
+  padding-left: 14px;
+  border-left: 1px solid rgb(var(--q-accent-rgb) / 0.3);
+  font: 400 12px/1.75 var(--q-mono);
+  color: var(--q-dim);
+}
+
+.tag dd {
+  margin: 0;
+}
+
+.tag dt {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.tag .amount {
+  margin-bottom: 6px;
+  font: 500 30px/1.1 var(--q-display);
+  font-variation-settings: "opsz" 300;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.02em;
+  color: var(--q-ink);
+}
+
+.dark {
+  margin: 12px 0 0;
+  padding-left: 15px;
+  font: 400 11.5px/1.5 var(--q-mono);
+  color: var(--q-faint);
+}
+
+.dark b {
+  font-weight: 500;
+  color: var(--q-dim);
+}
+
+.lit[data-side="left"] .tag {
+  left: auto;
+  right: 15px;
+  top: -12px;
+  padding-top: 0;
+  padding-right: 30px;
+  text-align: right;
+}
+
+.lit[data-side="left"] .tag::before {
+  left: auto;
+  right: 0;
+  top: 12px;
+  width: 30px;
+  height: 1px;
+  background: rgb(var(--q-accent-rgb) / 0.7);
+}
+
+.lit[data-side="left"] .tag dl {
+  padding-left: 0;
+  padding-right: 12px;
+  border-left: 0;
+  border-right: 1px solid rgb(var(--q-accent-rgb) / 0.3);
+}
+
+.lit[data-side="left"] .dark {
+  padding-left: 0;
+  padding-right: 13px;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Failsafe: if the entrance never starts, everything still arrives. */
+@keyframes settle {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .tag {
+    max-width: calc(100vw - 92px);
+  }
+
+  .tag dl {
+    font-size: 10px;
+    line-height: 1.7;
+    letter-spacing: -0.01em;
+  }
+
+  .tag .amount {
+    margin-bottom: 3px;
+    font-size: 23px;
+  }
+
+  .dark {
+    margin-top: 8px;
+    font-size: 10.5px;
+  }
+
+  .halo {
+    left: -90px;
+    top: -90px;
+    width: 180px;
+    height: 180px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field,
+  [data-go] .field,
+  .halo,
+  .ring,
+  .core,
+  [data-go] .halo,
+  [data-go] .ring,
+  [data-go] .core,
+  .tag,
+  [data-go] .tag {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  [data-go] .far,
+  [data-go] .near,
+  .pulse.pulsing {
+    animation: none;
+  }
+}

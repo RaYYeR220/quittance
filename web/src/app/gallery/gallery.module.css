@@ -1,0 +1,193 @@
+/* A strip of coupons between two runs of the rope band, torn apart at perforations. */
+.strip {
+  position: relative;
+  padding: var(--q-band) 0;
+  background:
+    var(--rope-h) 0 0 / auto var(--q-band) repeat-x,
+    var(--rope-h) 0 100% / auto var(--q-band) repeat-x;
+}
+
+.coupons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(300px, 1fr);
+  overflow-x: auto;
+  background: var(--q-panel);
+}
+
+.coupon {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 34px 32px 32px;
+  min-width: 0;
+}
+
+/* perforation between coupons, with punched half-holes at both edges */
+.coupon + .coupon {
+  border-left: 1px dashed rgba(207, 216, 204, 0.22);
+}
+
+.coupon + .coupon::before,
+.coupon + .coupon::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--q-bg);
+}
+
+.coupon + .coupon::before {
+  top: -7px;
+}
+
+.coupon + .coupon::after {
+  bottom: -7px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  margin: 4px 0 4px 4px;
+  border-radius: 50%;
+  background: var(--q-accent);
+  outline: 1px solid rgb(var(--q-accent-rgb) / 0.45);
+  outline-offset: 4px;
+}
+
+.memo {
+  margin: 0;
+  font: 500 25px/1.2 var(--q-display);
+  font-variation-settings: "opsz" 160;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.015em;
+  text-wrap: pretty;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  font: 400 14px/1.4 var(--q-mono);
+  color: var(--q-faint);
+}
+
+.amount {
+  color: var(--q-ink);
+}
+
+.challenge {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 0;
+}
+
+.challengeLabel {
+  font-size: 13.5px;
+  color: var(--q-faint);
+}
+
+.challenge code {
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--q-dim);
+  overflow-wrap: anywhere;
+  background: var(--q-field);
+  border-top: 1px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(207, 216, 204, 0.1);
+}
+
+.note {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--q-faint);
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 22px;
+  margin: 8px 0 0;
+  font-size: 14.5px;
+}
+
+.links a {
+  text-decoration-color: var(--q-ghost);
+}
+
+.links a:hover {
+  text-decoration-color: var(--q-accent);
+}
+
+.links .verify {
+  display: inline-flex;
+  align-items: center;
+  height: 44px;
+  padding: 0 18px;
+  font-weight: 600;
+  color: var(--q-bg);
+  background: var(--q-ink);
+  text-decoration: none;
+  clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+  transition:
+    background 0.18s,
+    color 0.18s;
+}
+
+.links .verify:hover {
+  background: var(--q-accent);
+  color: var(--q-on-accent);
+}
+
+.links .verify:focus-visible {
+  clip-path: none;
+}
+
+/* Stacked, the perforations run across. */
+@media (max-width: 760px) {
+  .coupons {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    overflow-x: visible;
+  }
+
+  .coupon {
+    padding: 28px 22px;
+  }
+
+  .coupon + .coupon {
+    border-left: 0;
+    border-top: 1px dashed rgba(207, 216, 204, 0.22);
+  }
+
+  .coupon + .coupon::before,
+  .coupon + .coupon::after {
+    top: -7px;
+    bottom: auto;
+  }
+
+  .coupon + .coupon::before {
+    left: -7px;
+  }
+
+  .coupon + .coupon::after {
+    left: auto;
+    right: -7px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .links .verify {
+    transition: none;
+  }
+}

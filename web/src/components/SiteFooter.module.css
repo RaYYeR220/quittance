@@ -1,0 +1,71 @@
+.foot {
+  position: relative;
+  z-index: 1;
+  padding: 0 var(--q-hero-gutter) 40px;
+}
+
+/* The rope band again, closing the certificate the hero opened. */
+.strip {
+  height: var(--q-band);
+  max-width: 1400px;
+  margin: 0 auto;
+  background: var(--rope-h) 0 0 / auto 100% repeat-x;
+  opacity: 0.55;
+}
+
+.wrap {
+  max-width: calc(1240px + 2 * (var(--q-gutter) - var(--q-hero-gutter)));
+  margin: 0 auto;
+  padding: 56px calc(var(--q-gutter) - var(--q-hero-gutter)) 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 24px 48px;
+  align-items: baseline;
+}
+
+.brand {
+  font: 500 30px/1 var(--q-display);
+  font-variation-settings: "opsz" 200;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px 30px;
+  font-size: 14.5px;
+  color: var(--q-dim);
+}
+
+.links a {
+  text-decoration: none;
+}
+
+.links a:hover {
+  color: var(--q-ink);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+.fine {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding-top: 22px;
+  border-top: 1px solid var(--q-rule);
+  font: 400 12px/1.6 var(--q-mono);
+  color: var(--q-faint);
+}
+
+@media (max-width: 760px) {
+  .wrap {
+    grid-template-columns: 1fr;
+    padding-top: 40px;
+  }
+
+  .links {
+    justify-content: flex-start;
+    gap: 12px 24px;
+  }
+}

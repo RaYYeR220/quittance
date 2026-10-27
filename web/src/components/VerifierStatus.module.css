@@ -1,24 +1,43 @@
 .status {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 12px;
   margin: 0;
-  font: 400 0.8rem/1.4 var(--q-mono);
-  color: var(--q-dim);
+  font: 400 12.5px/1.5 var(--q-mono);
+  color: var(--q-faint);
 }
 
+/* A lamp: straw and blinking while the key is being built, a lit copper note once ready. */
 .lamp {
-  width: 0.55rem;
-  height: 0.55rem;
+  position: relative;
+  flex: none;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   background: var(--q-warn);
-  flex: none;
   animation: blink 1.2s steps(2, jump-none) infinite;
 }
 
+.lamp::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+}
+
+.status[data-ready="true"] {
+  color: var(--q-dim);
+}
+
 .status[data-ready="true"] .lamp {
-  background: var(--q-ok);
+  background: var(--q-accent-hi);
+  box-shadow: 0 0 12px 2px rgb(var(--q-accent-rgb) / 0.35);
   animation: none;
+}
+
+.status[data-ready="true"] .lamp::after {
+  border-color: rgb(var(--q-accent-rgb) / 0.6);
 }
 
 @keyframes blink {

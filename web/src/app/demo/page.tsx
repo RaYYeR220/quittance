@@ -116,11 +116,11 @@ export default function DemoPage() {
             <legend>Which payment</legend>
             {info.payments.map((p, i) => (
               <label key={p.txid} className={demo.payment} data-on={i === pick}>
-                <input type="radio" name="payment" id={`payment-${i}`} checked={i === pick} onChange={() => setPick(i)} />
+                <input className={demo.radio} type="radio" name="payment" id={`payment-${i}`} checked={i === pick} onChange={() => setPick(i)} />
+                <span className={demo.note} aria-hidden="true" />
                 <span className={demo.memo}>{p.memo}</span>
-                <span className={demo.meta}>
-                  {p.value_zec} ZEC · height {p.height.toLocaleString("en-US")}
-                </span>
+                <span className={demo.amount}>{p.value_zec} ZEC</span>
+                <span className={demo.height}>height {p.height.toLocaleString("en-US")}</span>
               </label>
             ))}
           </fieldset>
@@ -162,26 +162,44 @@ export default function DemoPage() {
           </p>
           <Receipt verdict={receipt.result.verdict} lookup={receipt.result.lookup} />
 
-          <section className={demo.break} aria-label="Try to break it">
-            <h2 className={styles.h2}>Try to break it</h2>
-            <ul className={demo.attempts}>
+          <section className={demo.break} aria-labelledby="break-title">
+            <div className={demo.breakHead}>
+              <h2 id="break-title" className={styles.h2}>
+                Try to break it
+              </h2>
+              <p className={styles.note}>Each attempt below should be refused, with the reason.</p>
+            </div>
+            <ul className={demo.attempts} aria-live="polite">
               {ATTEMPTS.map((a) => {
                 const o = outcomes[a.id];
                 return (
                   <li key={a.id} className={demo.attempt} data-state={o === undefined ? "idle" : o === "running" ? "running" : o.refused ? "refused" : "accepted"}>
-                    <div>
+                    <span className={demo.holes} aria-hidden="true" />
+                    <div className={demo.attemptText}>
                       <p className={demo.attemptTitle}>{a.title}</p>
                       <p className={demo.attemptHow}>{a.how}</p>
                     </div>
-                    {o === undefined && (
-                      <button type="button" className={styles.ghostButton} onClick={() => void attempt(a.id)}>
-                        Try it
-                      </button>
-                    )}
-                    {o === "running" && <span className={demo.result}>checking…</span>}
+                    <div className={demo.attemptAction}>
+                      {o === undefined && (
+                        <button type="button" className={styles.ghostButton} onClick={() => void attempt(a.id)}>
+                          Try it
+                        </button>
+                      )}
+                      {o === "running" && (
+                        <span className={demo.running} role="status">
+                          <span className={demo.lamp} aria-hidden="true" />
+                          checking…
+                        </span>
+                      )}
+                      {o && o !== "running" && (
+                        <span className={demo.verdict}>
+                          <span aria-hidden="true">{o.refused ? "✕" : "!"}</span> {o.refused ? "Refused" : "Accepted"}
+                        </span>
+                      )}
+                    </div>
                     {o && o !== "running" && (
                       <p className={demo.result}>
-                        <strong>{o.refused ? "Refused" : "Accepted"}</strong> · {o.label}: {o.detail}
+                        <span className={demo.resultLabel}>{o.label}</span> <code>{o.detail}</code>
                       </p>
                     )}
                   </li>

@@ -1,68 +1,87 @@
 .page {
-  max-width: 64rem;
+  max-width: calc(1240px + 2 * var(--q-gutter));
   margin: 0 auto;
-  padding-block: clamp(2.5rem, 6vw, 5rem) 6rem;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding: clamp(40px, 6vw, 88px) var(--q-gutter) clamp(88px, 9vw, 128px);
   display: grid;
-  gap: 2rem;
+  gap: 40px;
   align-content: start;
+  min-width: 0;
+}
+
+.page > * {
+  min-width: 0;
 }
 
 .intro {
   display: grid;
-  gap: 0.9rem;
-  max-width: 44rem;
+  gap: 18px;
+  max-width: 50rem;
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--q-rule);
 }
 
 .eyebrow,
 .label {
   margin: 0;
-  font: 500 0.72rem/1.2 var(--q-mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--q-dim);
+  font: 400 12.5px/1.4 var(--q-mono);
+  color: var(--q-faint);
 }
 
 .title {
   margin: 0;
-  font: 500 clamp(2.2rem, 5vw, 3.6rem) / 1.02 var(--q-display);
+  font-family: var(--q-display);
+  font-weight: 500;
+  font-variation-settings: "opsz" 460;
+  font-size: clamp(40px, 5.4vw, 74px);
+  line-height: 1;
   letter-spacing: -0.035em;
   text-wrap: balance;
 }
 
 .h2 {
   margin: 0;
-  font: 500 clamp(1.5rem, 3vw, 2.1rem) / 1.1 var(--q-display);
-  letter-spacing: -0.025em;
+  font-family: var(--q-display);
+  font-weight: 500;
+  font-variation-settings: "opsz" 400;
+  font-size: clamp(30px, 3.4vw, 44px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
 }
 
 .lede {
   margin: 0;
+  max-width: 36em;
+  font-size: 18px;
+  line-height: 1.62;
   color: var(--q-dim);
-  font-size: 1.05rem;
-  line-height: 1.55;
-  max-width: 62ch;
+}
+
+.lede a {
+  text-decoration-color: var(--q-faint);
+}
+
+.lede a:hover {
+  text-decoration-color: var(--q-accent);
 }
 
 .form,
 .panel {
   display: grid;
-  gap: 1rem;
-  max-width: 44rem;
+  gap: 22px;
+  max-width: 46rem;
   min-width: 0;
 }
 
 .panel {
-  border: 1px solid var(--q-rule);
+  padding: 26px 28px 28px;
   background: var(--q-panel);
-  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--q-rule);
 }
 
 .row {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 18px 20px;
   align-items: end;
 }
 
@@ -72,27 +91,41 @@
 
 .field {
   display: grid;
-  gap: 0.45rem;
+  gap: 9px;
   min-width: 0;
 }
 
 .field > span {
-  font: 500 0.72rem/1.2 var(--q-mono);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  font-size: 14.5px;
   color: var(--q-dim);
 }
 
+/* Inputs are recessed plates: a dark well with a shadowed top edge and a lit bottom edge. */
 .field input,
 .field textarea,
 .field select {
   width: 100%;
-  font: 400 0.92rem/1.45 var(--q-mono);
+  margin: 0;
+  padding: 14px 16px;
+  font: 400 14px/1.5 var(--q-mono);
   color: var(--q-ink);
   background: var(--q-field);
   border: 1px solid var(--q-rule);
-  border-radius: var(--q-radius);
-  padding: 0.7rem 0.8rem;
+  border-top-color: rgba(0, 0, 0, 0.7);
+  border-bottom-color: rgba(207, 216, 204, 0.2);
+  border-radius: 0;
+  transition: border-color 0.15s;
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--q-ghost);
+}
+
+.field input:hover,
+.field textarea:hover,
+.field select:hover {
+  border-bottom-color: var(--q-faint);
 }
 
 .field textarea {
@@ -100,25 +133,55 @@
   word-break: break-all;
 }
 
+.field select {
+  appearance: none;
+  padding-right: 40px;
+  font-family: var(--q-sans);
+  font-size: 15px;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23a9b6a6' stroke-width='1.2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+}
+
 .field input:focus-visible,
 .field textarea:focus-visible,
 .field select:focus-visible,
-.primary:focus-visible,
-.ghost:focus-within,
-.ghostButton:focus-visible {
+.ghostButton:focus-visible,
+.ghost:focus-within {
   outline: 2px solid var(--q-accent);
   outline-offset: 2px;
 }
 
+/* The certificate's button: celadon plate with clipped corners; copper when pressed toward. */
 .primary {
   justify-self: start;
-  font: 600 0.95rem/1 var(--q-sans);
-  color: var(--q-on-accent);
-  background: var(--q-accent);
+  display: inline-flex;
+  align-items: center;
+  height: 52px;
+  padding: 0 30px;
+  font: 600 15.5px/1 var(--q-sans);
+  color: var(--q-bg);
+  background: var(--q-ink);
   border: 0;
-  border-radius: var(--q-radius);
-  padding: 0.95rem 1.3rem;
+  border-radius: 0;
   cursor: pointer;
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+  transition:
+    background 0.18s,
+    color 0.18s;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--q-accent);
+  color: var(--q-on-accent);
+}
+
+/* A clip-path would cut the focus ring off, so the plate squares up while focused. */
+.primary:focus-visible {
+  clip-path: none;
+  outline: 2px solid var(--q-accent);
+  outline-offset: 3px;
 }
 
 .primary:disabled {
@@ -128,33 +191,87 @@
 
 .ghost,
 .ghostButton {
-  font: 500 0.88rem/1 var(--q-sans);
+  display: inline-flex;
+  align-items: center;
+  min-height: 52px;
+  padding: 0 20px;
+  font: 500 14.5px/1.2 var(--q-sans);
   color: var(--q-ink);
   background: transparent;
-  border: 1px solid var(--q-rule);
-  border-radius: var(--q-radius);
-  padding: 0.85rem 1rem;
+  border: 1px solid var(--q-rule-strong);
+  border-radius: 0;
   cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.ghost:hover,
+.ghostButton:hover:not(:disabled) {
+  border-color: var(--q-accent);
+}
+
+.ghostButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .code {
   margin: 0;
-  font: 400 0.85rem/1.5 var(--q-mono);
+  padding: 14px 16px;
+  font: 400 13.5px/1.6 var(--q-mono);
   overflow-wrap: anywhere;
   background: var(--q-field);
-  border: 1px solid var(--q-rule);
-  padding: 0.7rem 0.8rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(207, 216, 204, 0.1);
 }
 
 .note {
   margin: 0;
-  font-size: 0.88rem;
-  color: var(--q-dim);
+  max-width: 46rem;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--q-faint);
 }
 
 .error {
   margin: 0;
+  max-width: 46rem;
+  padding: 14px 16px;
+  font: 400 13.5px/1.6 var(--q-mono);
   color: var(--q-bad);
-  font: 400 0.9rem/1.5 var(--q-mono);
   overflow-wrap: anywhere;
+  background: var(--q-field);
+  border-left: 2px solid var(--q-bad);
+}
+
+@media (max-width: 760px) {
+  .page {
+    gap: 32px;
+  }
+
+  .intro {
+    padding-bottom: 28px;
+  }
+
+  .lede {
+    font-size: 16.5px;
+  }
+
+  .panel {
+    padding: 20px;
+  }
+
+  .row > .field {
+    flex-basis: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primary,
+  .ghost,
+  .ghostButton,
+  .field input,
+  .field textarea,
+  .field select {
+    transition: none;
+  }
 }

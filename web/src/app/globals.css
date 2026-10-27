@@ -1,28 +1,165 @@
-/* Placeholder tokens; the chosen art direction replaces these. */
+/*
+ * Quittance: a bearer certificate on green-black. Celadon ink, one copper
+ * accent that means "disclosed", hairlines instead of shadows.
+ */
 :root {
-  --q-bg: #f1f0ee;
-  --q-panel: #f7f6f4;
-  --q-field: #ffffff;
-  --q-ink: #0e0d0c;
-  --q-dim: #565553;
-  --q-rule: #d9d7d2;
-  --q-accent: #0e0d0c;
-  --q-on-accent: #f1f0ee;
-  --q-ok: #2f6b4f;
-  --q-warn: #a3670b;
-  --q-bad: #b3261e;
-  --q-radius: 3px;
-  --q-display: Georgia, serif;
-  --q-sans: system-ui, sans-serif;
-  --q-mono: ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+
+  --q-bg: #0d1411;
+  --q-panel: #111a15;
+  --q-field: #090e0b;
+  --q-ink: #cfd8cc;
+  --q-dim: #a9b6a6;
+  --q-faint: #7b8a79;
+  --q-ghost: #4d5a4c;
+  --q-rule: rgba(207, 216, 204, 0.14);
+  --q-rule-strong: rgba(207, 216, 204, 0.26);
+  --q-accent: #c27a4b;
+  --q-accent-hi: #d99466;
+  --q-accent-rgb: 194 122 75;
+  --q-on-accent: #140d08;
+  --q-ok: #c27a4b;
+  --q-warn: #d8b46a;
+  --q-bad: #d9705f;
+  --q-radius: 0px;
+
+  --q-display: var(--font-display), Georgia, serif;
+  --q-sans: var(--font-sans), system-ui, sans-serif;
+  --q-mono: var(--font-mono), ui-monospace, Menlo, Consolas, monospace;
+
+  --q-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --q-gutter: clamp(20px, 5vw, 72px);
+  --q-hero-gutter: clamp(12px, 2.2vw, 32px);
+  --q-band: 14px;
+  --q-cut: 22px;
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; }
-body { background: var(--q-bg); color: var(--q-ink); font: 400 16px/1.55 var(--q-sans); }
-a { color: inherit; text-underline-offset: 3px; }
-.site-nav { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-block: 1rem; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--q-rule); }
-.site-nav .brand { font: 600 1.05rem/1 var(--q-display); text-decoration: none; }
-.site-nav .links { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: 0.9rem; }
-.site-nav .links a { text-decoration: none; color: var(--q-dim); }
-.site-nav .links a:hover { color: var(--q-ink); }
-.copy { justify-self: start; font: 500 0.82rem/1 var(--q-mono); padding: 0.6rem 0.8rem; background: transparent; color: var(--q-ink); border: 1px solid var(--q-rule); border-radius: var(--q-radius); cursor: pointer; }
+
+@media (max-width: 760px) {
+  :root {
+    --q-band: 10px;
+    --q-cut: 16px;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+}
+
+html {
+  background: var(--q-bg);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: var(--q-ink);
+  font: 400 17px/1.6 var(--q-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
+  background:
+    radial-gradient(60vw 50vw at 72% 6%, #132019 0%, rgba(19, 32, 25, 0) 70%),
+    radial-gradient(50vw 50vw at 6% 40%, #0a100d 0%, rgba(10, 16, 13, 0) 70%),
+    var(--q-bg);
+}
+
+/* The texture floor: a 1px celadon grid under everything, grain over it. */
+body::before,
+body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+body::before {
+  z-index: 0;
+  background:
+    linear-gradient(to right, rgba(207, 216, 204, 0.045) 1px, transparent 1px) 0 0 / 80px 80px,
+    linear-gradient(to bottom, rgba(207, 216, 204, 0.045) 1px, transparent 1px) 0 0 / 80px 80px;
+}
+
+body::after {
+  z-index: 90;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+#content {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+}
+
+a {
+  color: inherit;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--q-accent);
+  outline-offset: 3px;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--q-mono);
+}
+
+::selection {
+  background: rgb(var(--q-accent-rgb) / 0.35);
+  color: var(--q-ink);
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -80px;
+  z-index: 100;
+  padding: 10px 14px;
+  background: var(--q-ink);
+  color: var(--q-bg);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* CopyButton: a hairline instrument button. */
+.copy {
+  justify-self: start;
+  font: 500 13px/1 var(--q-mono);
+  padding: 12px 15px;
+  background: transparent;
+  color: var(--q-ink);
+  border: 1px solid var(--q-rule-strong);
+  border-radius: 0;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.copy:hover {
+  border-color: var(--q-accent);
+}

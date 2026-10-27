@@ -1,37 +1,126 @@
-.section {
+.body {
   display: grid;
-  gap: 0.9rem;
-  max-width: 52rem;
+  grid-template-columns: 13rem minmax(0, 1fr);
+  gap: 48px 72px;
+  align-items: start;
+}
+
+.toc {
+  position: sticky;
+  top: 32px;
+  display: grid;
+  border-left: 1px solid var(--q-rule);
+}
+
+.toc a {
+  padding: 8px 0 8px 16px;
+  margin-left: -1px;
+  font-size: 14.5px;
+  color: var(--q-dim);
+  text-decoration: none;
+  border-left: 1px solid transparent;
+}
+
+.toc a:hover {
+  color: var(--q-ink);
+  border-left-color: var(--q-accent);
+}
+
+.sections {
+  display: grid;
+  gap: 72px;
   min-width: 0;
 }
 
+.section {
+  display: grid;
+  gap: 18px;
+  max-width: 58rem;
+  min-width: 0;
+  scroll-margin-top: 24px;
+}
+
+.section code {
+  font-size: 0.9em;
+}
+
+/* Code sits on a recessed plate: dark well, shadowed top edge, lit bottom edge. */
 .pre {
   margin: 0;
-  font: 400 0.82rem/1.6 var(--q-mono);
+  padding: 20px 22px;
+  font: 400 13.5px/1.75 var(--q-mono);
+  color: var(--q-ink);
   background: var(--q-field);
-  border: 1px solid var(--q-rule);
-  padding: 1rem 1.1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid rgba(207, 216, 204, 0.1);
   overflow-x: auto;
   white-space: pre;
+  tab-size: 2;
 }
 
-.table {
-  overflow-x: auto;
+.endpoints {
+  margin: 0;
+  border-top: 1px solid var(--q-rule-strong);
 }
 
-.table table {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: 0.9rem;
+.endpoints > div {
+  display: grid;
+  grid-template-columns: minmax(0, 19rem) minmax(0, 1fr);
+  gap: 4px 24px;
+  align-items: baseline;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--q-rule);
 }
 
-.table td {
-  border-top: 1px solid var(--q-rule);
-  padding: 0.6rem 0.8rem 0.6rem 0;
-  vertical-align: top;
+.endpoints dt code {
+  font-size: 13.5px;
+  color: var(--q-ink);
+  overflow-wrap: anywhere;
 }
 
-.table code {
-  font-family: var(--q-mono);
-  white-space: nowrap;
+.endpoints dd {
+  margin: 0;
+  font-size: 15px;
+  color: var(--q-dim);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 999px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+
+  .toc {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 24px;
+    border-left: 0;
+  }
+
+  .toc a {
+    padding: 6px 0;
+    margin-left: 0;
+    border-left: 0;
+    border-bottom: 1px solid var(--q-ghost);
+  }
+
+  .toc a:hover {
+    border-bottom-color: var(--q-accent);
+  }
+}
+
+@media (max-width: 760px) {
+  .sections {
+    gap: 56px;
+  }
+
+  .pre {
+    padding: 16px;
+    font-size: 12.5px;
+  }
+
+  .endpoints > div {
+    grid-template-columns: 1fr;
+  }
 }
