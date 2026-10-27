@@ -156,7 +156,7 @@ export default function Home() {
                   </li>
                   <li className={s.wide}>
                     <span className={s.check} aria-hidden="true">✓</span>
-                    <span className={s.value}>Sent by the holder of the spending key behind this payment</span>
+                    <span className={s.value}>Sent by the holder of a spending key used in this payment</span>
                   </li>
                   <li>
                     <span className={s.check} aria-hidden="true">✓</span>
