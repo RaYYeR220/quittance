@@ -12,6 +12,8 @@ pub enum Error {
     WalletExists(PathBuf),
     #[error("{path}: {source}")]
     Io { path: PathBuf, source: std::io::Error },
+    #[error("birthday {birthday} is not a block on this chain yet (the tip is {tip})")]
+    Birthday { birthday: u32, tip: u32 },
     #[error("wallet config {path} is unreadable: {reason}")]
     Config { path: PathBuf, reason: String },
     /// Never carries any part of the phrase.
@@ -33,16 +35,16 @@ pub enum Error {
     Propose(String),
     #[error("could not build the transaction: {0}")]
     Build(String),
-    #[error("lightwalletd rejected the transaction (code {code}): {message}")]
-    Broadcast { code: i32, message: String },
+    #[error("lightwalletd rejected the transaction (code {code}): {message}. The notes it spends stay reserved until it expires at height {expiry}")]
+    Broadcast { code: i32, message: String, expiry: u32 },
     #[error("transaction {0} is not known to lightwalletd")]
     TxNotFound(String),
     #[error("transaction {0} is not mined yet; a disclosure names the block it was mined in, so wait for one confirmation")]
     NotMined(String),
     #[error("disclosure kit: {0}")]
     Kit(String),
-    #[error("no disclosure kit for {txid}: run `quittance kit capture --txid {txid}` first")]
-    NoKit { txid: String },
+    #[error("no disclosure kit for {txid} in {}: capture one with `quittance kit capture --dir {} --txid {txid}`", .dir.display(), .dir.display())]
+    NoKit { txid: String, dir: PathBuf },
     #[error(transparent)]
     Prove(#[from] zip311::ProveError),
 }

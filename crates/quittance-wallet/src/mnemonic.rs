@@ -58,7 +58,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("m.txt");
         std::fs::write(&path, "mnemonic: abandon abandon zebra abandon abandon abandon abandon abandon abandon abandon abandon about\n").unwrap();
-        let err = read_seed(&path).unwrap_err().to_string();
+        let err = read_seed(&path).err().expect("an invalid checksum is refused").to_string();
         assert!(!err.contains("zebra") && !err.contains("abandon"), "{err}");
 
         std::fs::write(&path, format!("mnemonic: {PHRASE}\n")).unwrap();

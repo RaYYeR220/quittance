@@ -1,9 +1,11 @@
 [package]
 name = "quittance-cli"
 version = "0.1.0"
+description = "Prove one shielded Zcash payment without handing over a viewing key"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
+repository.workspace = true
 
 [[bin]]
 name = "quittance"
@@ -12,3 +14,11 @@ path = "src/main.rs"
 [dependencies]
 zip311 = { path = "../zip311" }
 quittance-wallet = { path = "../quittance-wallet" }
+
+hex.workspace = true
+serde_json.workspace = true
+rand = { workspace = true, features = ["std", "sys_rng"] }
+
+anyhow = "1"
+clap = { version = "4.5", features = ["derive", "env"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

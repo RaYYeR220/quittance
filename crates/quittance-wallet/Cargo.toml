@@ -37,10 +37,8 @@ secrecy = "0.8"
 zip32 = "0.3"
 sapling = { package = "sapling-crypto", version = "0.9" }
 futures-util = "0.3"
-nonempty = { version = "0.11", default-features = false }
 rusqlite = { version = "0.37", features = ["bundled"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
-tonic = { version = "0.14", features = ["tls-webpki-roots", "transport"] }
+tonic = { version = "0.14", default-features = false, features = ["channel", "tls-ring", "tls-webpki-roots"] }
 zeroize = "1"
 
 [dev-dependencies]

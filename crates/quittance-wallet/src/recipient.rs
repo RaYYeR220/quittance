@@ -144,7 +144,7 @@ mod tests {
             (ZcashAddress::from_transparent_p2sh(t, [1; 20]).encode(), RecipientError::Transparent),
             (ZcashAddress::from_tex(t, [1; 20]).encode(), RecipientError::Tex),
             (ZcashAddress::from_sapling(t, [1; 43]).encode(), RecipientError::Sapling),
-            (ua(t, vec![unified::Receiver::P2pkh([1; 20])]), RecipientError::NoOrchardReceiver),
+            (ua(t, vec![unified::Receiver::Sapling([1; 43]), unified::Receiver::P2pkh([1; 20])]), RecipientError::NoOrchardReceiver),
         ];
         for (addr, expected) in cases {
             assert_eq!(IronwoodRecipient::parse(&addr, Network::Test), Err(expected), "{addr}");

@@ -67,10 +67,6 @@ impl Lightwalletd {
         self.network
     }
 
-    pub(crate) fn client(&mut self) -> &mut CompactTxStreamerClient<Channel> {
-        &mut self.client
-    }
-
     pub async fn tip(&mut self) -> Result<BlockHeight> {
         let latest = self.client.get_latest_block(service::ChainSpec::default()).await.map_err(status)?.into_inner();
         u32::try_from(latest.height).map(BlockHeight::from_u32).map_err(|_| Error::Server("tip height out of range".into()))
@@ -145,7 +141,7 @@ impl Lightwalletd {
         tx.write(&mut data).map_err(|e| Error::Build(e.to_string()))?;
         let response = self.client.send_transaction(service::RawTransaction { data, height: 0 }).await.map_err(status)?.into_inner();
         if response.error_code != 0 {
-            return Err(Error::Broadcast { code: response.error_code, message: response.error_message });
+            return Err(Error::Broadcast { code: response.error_code, message: response.error_message, expiry: tx.expiry_height().into() });
         }
         Ok(())
     }
