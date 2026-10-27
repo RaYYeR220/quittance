@@ -5,7 +5,7 @@ links open the mainnet explorer.
 
 ## Check it in five minutes
 
-1. **Watch a real wallet answer your challenge.** Open the live demo, type who
+1. **Watch a real wallet answer your challenge.** Open the [live demo](https://quittance-zec.vercel.app/demo), type who
    you are, press *Ask for a receipt*. A mainnet wallet makes a fresh receipt for
    your challenge and your browser checks it against the chain.
 2. **Try to break it.** On the same page, each of the five buttons sends a
