@@ -19,7 +19,7 @@ NU6.3. ZIP 311 specifies Sapling only and leaves Orchard as future work; the
 Ironwood construction, an encoding and a challenge convention are specified in
 [`docs/zip-0311-ironwood.md`](docs/zip-0311-ironwood.md).
 
-> Live: https://quittance-zec.vercel.app · API: https://34-78-220-3.sslip.io · Demo video: _video link_ · [Check our claims in five minutes](docs/PROOF.md)
+> Live: https://quittance-zec.vercel.app · API: https://34-78-220-3.sslip.io · Demo video: https://youtu.be/QlgTtyQ_4Tw · [Check our claims in five minutes](docs/PROOF.md)
 
 ## How it works
 
