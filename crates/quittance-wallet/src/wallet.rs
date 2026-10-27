@@ -48,6 +48,10 @@ pub struct BalanceReport {
     /// Shown so nothing is hidden, but never spent by this wallet.
     pub orchard: PoolBalance,
     pub sapling: PoolBalance,
+    /// Funds at the account's transparent addresses, waiting to be shielded.
+    pub transparent: PoolBalance,
+    /// Whether sync looks for transparent funds at all (see [`Wallet::transparent_address`]).
+    pub watches_transparent: bool,
 }
 
 impl Wallet {
@@ -74,7 +78,7 @@ impl Wallet {
         init_wallet_db(&mut db, None).map_err(Error::db)?;
         let (account, _) = db.create_account(ACCOUNT_NAME, &seed, &start, None).map_err(Error::db)?;
 
-        let config = WalletConfig { network, birthday, mnemonic_file };
+        let config = WalletConfig { network, birthday, mnemonic_file, transparent: false };
         config.write(dir)?;
         Ok(Wallet { dir: dir.to_owned(), config, db, account })
     }
@@ -167,6 +171,8 @@ impl Wallet {
             ironwood: pool(b.ironwood_balance()),
             orchard: pool(b.orchard_balance()),
             sapling: pool(b.sapling_balance()),
+            transparent: pool(&b.unshielded_balance()),
+            watches_transparent: self.config.transparent,
         }))
     }
 }

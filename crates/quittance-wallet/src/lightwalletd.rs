@@ -123,17 +123,45 @@ impl Lightwalletd {
             Err(s) if s.message().contains("No such mempool or blockchain transaction") => return Ok(None),
             Err(s) => return Err(status(s)),
         };
+        let chain = self.parse(raw).await?;
+        if chain.tx.txid() != txid {
+            return Err(Error::Server(format!("asked for transaction {txid}, got {}", chain.tx.txid())));
+        }
+        Ok(Some(chain))
+    }
+
+    /// Unspent outputs to any of `addresses` mined at or after `start`.
+    pub(crate) async fn address_utxos(&mut self, addresses: Vec<String>, start: BlockHeight) -> Result<Vec<service::GetAddressUtxosReply>> {
+        let request = service::GetAddressUtxosArg { addresses, start_height: start.into(), max_entries: 0 };
+        self.client.get_address_utxos_stream(request).await.map_err(status)?.into_inner().try_collect().await.map_err(status)
+    }
+
+    /// Every transaction mined in `range` that pays or spends from `address`.
+    pub(crate) async fn address_transactions(&mut self, address: String, range: std::ops::Range<BlockHeight>) -> Result<Vec<ChainTx>> {
+        let id = |h: BlockHeight| service::BlockId { height: u64::from(h), hash: vec![] };
+        // The filter's end is inclusive.
+        let filter = service::TransparentAddressBlockFilter {
+            address,
+            range: Some(service::BlockRange { start: Some(id(range.start)), end: Some(id(range.end - 1)), pool_types: vec![] }),
+        };
+        let raws: Vec<service::RawTransaction> =
+            self.client.get_taddress_txids(filter).await.map_err(status)?.into_inner().try_collect().await.map_err(status)?;
+        let mut txs = Vec::with_capacity(raws.len());
+        for raw in raws {
+            txs.push(self.parse(raw).await?);
+        }
+        Ok(txs)
+    }
+
+    async fn parse(&mut self, raw: service::RawTransaction) -> Result<ChainTx> {
         let mined_height = (raw.height > 0 && raw.height < u64::from(u32::MAX)).then_some(raw.height as u32);
         let branch_height = match mined_height {
             Some(h) => BlockHeight::from_u32(h),
             None => self.tip().await? + 1,
         };
         let tx = Transaction::read(&raw.data[..], BranchId::for_height(&self.network.params(), branch_height))
-            .map_err(|e| Error::Server(format!("transaction {txid} does not parse: {e}")))?;
-        if tx.txid() != txid {
-            return Err(Error::Server(format!("asked for transaction {txid}, got {}", tx.txid())));
-        }
-        Ok(Some(ChainTx { tx, raw: raw.data, mined_height }))
+            .map_err(|e| Error::Server(format!("a transaction from the server does not parse: {e}")))?;
+        Ok(ChainTx { tx, raw: raw.data, mined_height })
     }
 
     pub async fn broadcast(&mut self, tx: &Transaction) -> Result<()> {

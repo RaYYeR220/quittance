@@ -40,6 +40,9 @@ pub enum SyncEvent {
     Scanned { blocks: Range<u32>, remaining: u64 },
     Rewound { fork_at: u32, to: u32 },
     Enhanced(TxId),
+    /// Unspent outputs found at the account's transparent addresses (only
+    /// for a wallet that has handed one out).
+    TransparentOutputs(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -82,6 +85,13 @@ impl Wallet {
         self.db.update_chain_tip(tip).map_err(Error::db)?;
         on(SyncEvent::Tip(tip.into()));
 
+        // Before shielded scanning, as the backend's own sync does, so outputs
+        // between the last scan and the tip are found in this pass.
+        if self.watches_transparent() {
+            let found = self.refresh_utxos(lwd).await?;
+            on(SyncEvent::TransparentOutputs(found));
+        }
+
         let mut scanned_blocks = 0u64;
         let mut rewinds = 0;
         loop {
@@ -118,7 +128,7 @@ impl Wallet {
             }
         }
 
-        let enhanced = self.enhance(lwd, &mut on).await?;
+        let enhanced = self.enhance(lwd, tip, &mut on).await?;
         Ok(SyncReport { tip: tip.into(), scanned_blocks, enhanced })
     }
 
@@ -143,7 +153,7 @@ impl Wallet {
 
     /// Answers the wallet's requests for full transactions: memos and sent
     /// outputs of transactions it found, and the mined status of its own.
-    async fn enhance(&mut self, lwd: &mut Lightwalletd, on: &mut impl FnMut(SyncEvent)) -> Result<usize> {
+    async fn enhance(&mut self, lwd: &mut Lightwalletd, tip: BlockHeight, on: &mut impl FnMut(SyncEvent)) -> Result<usize> {
         let mut answered = BTreeSet::new();
         let mut enhanced = 0;
         loop {
@@ -169,6 +179,13 @@ impl Wallet {
                             on(SyncEvent::Enhanced(*txid));
                         }
                     },
+                    // A wallet that never handed out a transparent address
+                    // doesn't reveal its transparent addresses to the server.
+                    TransactionDataRequest::TransactionsInvolvingAddress(r) => {
+                        if self.watches_transparent() {
+                            enhanced += self.check_transparent_address(lwd, r.clone(), tip).await?;
+                        }
+                    }
                 }
                 answered.insert(request);
             }

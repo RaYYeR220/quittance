@@ -27,8 +27,11 @@ zcash_client_backend = { version = "0.25.0", features = [
     "lightwalletd-tonic-tls-webpki-roots",
     "lightwalletd-tonic-transport",
     "orchard",
+    "transparent-inputs",
 ] }
-zcash_client_sqlite = { version = "0.23.0", features = ["orchard"] }
+zcash_client_sqlite = { version = "0.23.0", features = ["orchard", "transparent-inputs"] }
+transparent = { package = "zcash_transparent", version = "0.11.0" }
+zcash_script = "0.6"
 zcash_proofs = { version = "0.31.0", features = ["bundled-prover"] }
 zip321 = "0.10.0"
 

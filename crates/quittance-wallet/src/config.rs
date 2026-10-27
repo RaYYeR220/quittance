@@ -20,6 +20,10 @@ pub struct WalletConfig {
     pub birthday: u32,
     /// Absolute path of the file holding the account's mnemonic.
     pub mnemonic_file: PathBuf,
+    /// Set once the wallet has handed out a transparent address. Only then
+    /// does sync ask the server about the account's transparent addresses.
+    #[serde(default)]
+    pub transparent: bool,
 }
 
 impl WalletConfig {
@@ -50,4 +54,17 @@ pub(crate) fn db_path(dir: &Path) -> PathBuf {
 
 pub(crate) fn kits_dir(dir: &Path) -> PathBuf {
     dir.join(KITS_DIR)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn configs_written_before_transparent_watching_still_load() {
+        let old = r#"{ "network": "main", "birthday": 3531500, "mnemonic_file": "C:\\keys\\m.txt" }"#;
+        let c: WalletConfig = serde_json::from_str(old).unwrap();
+        assert!(!c.transparent);
+        assert_eq!(c.network, Network::Main);
+    }
 }

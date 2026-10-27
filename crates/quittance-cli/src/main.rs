@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{anyhow, bail, Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use quittance_wallet::{
-    parse_transaction, parse_txid, DisclosureRequest, IronwoodRecipient, Lightwalletd, PaymentRequest, SyncEvent, TxId,
+    parse_transaction, parse_txid, Amount, DisclosureRequest, IronwoodRecipient, Lightwalletd, PaymentRequest, SyncEvent, TxId,
     Wallet,
 };
 use rand::{rand_core::UnwrapErr, rngs::SysRng, Rng};
@@ -84,8 +84,17 @@ enum WalletCommand {
         json: bool,
     },
     /// The wallet's address (Orchard receiver only: payments to it land in Ironwood)
-    Address(DirArg),
+    Address {
+        #[command(flatten)]
+        dir: DirArg,
+        /// The account's transparent address instead, for a source that can't pay a
+        /// shielded one. Payments to it are public; shield them as soon as they arrive.
+        /// From now on `wallet sync` watches the account's transparent addresses.
+        #[arg(long)]
+        transparent: bool,
+    },
     /// Pay an Ironwood address and capture the payment's disclosure kit
+    #[command(group(clap::ArgGroup::new("amount").required(true).args(["zat", "max"])))]
     Send {
         #[command(flatten)]
         dir: DirArg,
@@ -94,10 +103,22 @@ enum WalletCommand {
         to: String,
         /// The amount in zatoshis (1 ZEC = 100,000,000)
         #[arg(long)]
-        zat: u64,
+        zat: Option<u64>,
+        /// Send everything spendable in Ironwood, less the fee
+        #[arg(long)]
+        max: bool,
         #[arg(long)]
         memo: Option<String>,
     },
+    /// Move transparent funds into Ironwood
+    ///
+    /// shield moves transparent funds you received into the Ironwood pool;
+    /// nothing else in this wallet spends or sends transparent funds. Every
+    /// transparent output with at least one confirmation goes into one
+    /// Ironwood note at the account's own internal address (ZIP 317 fee).
+    /// Funds that came from someone else become spendable once the
+    /// transparent payment has 10 confirmations.
+    Shield(DirArg),
     /// Recent transactions
     List {
         #[command(flatten)]
@@ -263,6 +284,7 @@ async fn wallet(c: WalletCommand, servers: &[String]) -> Result<()> {
                     }
                     SyncEvent::Rewound { fork_at, to } => println!("reorg at {fork_at}: rewound to {to}"),
                     SyncEvent::Enhanced(txid) => println!("fetched {txid}"),
+                    SyncEvent::TransparentOutputs(n) => println!("transparent: {n} unspent output(s) at this account's addresses"),
                 })
                 .await?;
             println!("synced to {} ({} blocks scanned, {} transactions fetched)", report.tip, report.scanned_blocks, report.enhanced);
@@ -276,10 +298,31 @@ async fn wallet(c: WalletCommand, servers: &[String]) -> Result<()> {
                 display::balance(&report);
             }
         }
-        WalletCommand::Address(DirArg { dir }) => {
-            println!("{}", Wallet::open(&dir)?.address()?);
+        WalletCommand::Address { dir, transparent: false } => {
+            println!("{}", Wallet::open(&dir.dir)?.address()?);
         }
-        WalletCommand::Send { dir, to, zat, memo } => {
+        WalletCommand::Address { dir, transparent: true } => {
+            let address = Wallet::open(&dir.dir)?.transparent_address()?;
+            eprintln!("warning: payments to a transparent address are public on chain; move them into Ironwood with `quittance wallet shield` as soon as they arrive");
+            println!("{address}");
+        }
+        WalletCommand::Shield(DirArg { dir }) => {
+            let mut wallet = Wallet::open(&dir)?;
+            let network = wallet.network();
+            let mut lwd = connect(network, servers).await?;
+            wallet.sync(&mut lwd, |_| {}).await?;
+            let shielded = wallet.shield(&mut lwd).await?;
+            let ticker = display::ticker(network);
+            println!("shielded {} {ticker} into Ironwood", display::zec(shielded.shielded_zat));
+            println!("fee      {} {ticker}", display::zec(shielded.fee_zat));
+            println!("txid     {}", shielded.txid);
+        }
+        WalletCommand::Send { dir, to, zat, max, memo } => {
+            let amount = match (zat, max) {
+                (Some(z), false) => Amount::Zat(z),
+                (None, true) => Amount::Max,
+                _ => bail!("give either --zat or --max"),
+            };
             let mut wallet = Wallet::open(&dir.dir)?;
             let network = wallet.network();
             // Refuse a non-Ironwood recipient before touching the network.
@@ -287,9 +330,9 @@ async fn wallet(c: WalletCommand, servers: &[String]) -> Result<()> {
             let mut lwd = connect(network, servers).await?;
             // Spend from the chain as it is now, not as it was at the last sync.
             wallet.sync(&mut lwd, |_| {}).await?;
-            let sent = wallet.send(&mut lwd, &PaymentRequest { to, zat, memo }).await?;
+            let sent = wallet.send(&mut lwd, &PaymentRequest { to, amount, memo }).await?;
             let ticker = display::ticker(network);
-            println!("paid    {} {ticker} to {}", display::zec(zat), sent.paid_to);
+            println!("paid    {} {ticker} to {}", display::zec(sent.paid_zat), sent.paid_to);
             println!("fee     {} {ticker}", display::zec(sent.fee_zat));
             println!("txid    {}", sent.txid);
             match sent.kit {

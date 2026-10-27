@@ -15,10 +15,10 @@ use zcash_client_backend::{
         error::Error as DataError,
         wallet::{
             create_proposed_transactions,
-            input_selection::{GreedyInputSelector, SpendPolicy},
-            propose_transfer, ConfirmationsPolicy, SpendingKeys,
+            input_selection::{GreedyInputSelector, LockedInputPolicy, SpendPolicy},
+            propose_send_max_transfer, propose_transfer, ConfirmationsPolicy, SpendingKeys,
         },
-        WalletRead,
+        MaxSpendMode, WalletRead,
     },
     fees::{standard::SingleOutputChangeStrategy, DustOutputPolicy, StandardFeeRule},
     proposal::{Proposal, Step},
@@ -39,16 +39,24 @@ use crate::lightwalletd::Lightwalletd;
 use crate::recipient::IronwoodRecipient;
 use crate::wallet::Wallet;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Amount {
+    Zat(u64),
+    /// Everything spendable in Ironwood, less the fee.
+    Max,
+}
+
 #[derive(Clone, Debug)]
 pub struct PaymentRequest {
     /// A unified address with an Orchard receiver.
     pub to: String,
-    pub zat: u64,
+    pub amount: Amount,
     pub memo: Option<String>,
 }
 
 pub struct Sent {
     pub txid: TxId,
+    pub paid_zat: u64,
     pub fee_zat: u64,
     /// The address actually paid: the Orchard receiver of the requested one, on its own.
     pub paid_to: String,
@@ -64,46 +72,55 @@ impl Wallet {
         let network = self.network();
         let params = self.params();
         let recipient = IronwoodRecipient::parse(&req.to, network)?;
-        if req.zat == 0 {
-            return Err(Error::Policy("the amount must be more than zero".into()));
-        }
-        let value = Zatoshis::from_u64(req.zat).map_err(|_| Error::Policy(format!("{} zatoshis is more than can exist", req.zat)))?;
         let memo = req
             .memo
             .as_deref()
             .map(|m| Memo::from_str(m).map(MemoBytes::from).map_err(|_| Error::Policy("the memo is longer than 512 bytes".into())))
             .transpose()?;
-        let payment = Payment::new(recipient.to_address(network), Some(value), memo, None, None, vec![])
-            .map_err(|e| Error::Policy(format!("{e:?}")))?;
-        let request = TransactionRequest::new(vec![payment]).map_err(|e| Error::Policy(e.to_string()))?;
 
         // Fail on a wrong or missing mnemonic before doing any work.
         let usk = self.spending_key()?;
 
-        let change = SingleOutputChangeStrategy::new(StandardFeeRule::Zip317, None, ShieldedPool::Ironwood, DustOutputPolicy::default());
-        let proposal = propose_transfer::<_, _, _, _, Infallible>(
-            &mut self.db,
-            &params,
-            self.account,
-            &GreedyInputSelector::new(),
-            &change,
-            request,
-            ConfirmationsPolicy::default(),
-            &SpendPolicy::shielded_pools([ShieldedPool::Ironwood]),
-            None,
-            None,
-        )
-        .map_err(|e| match e {
-            DataError::InsufficientFunds { available, required } => Error::Propose(format!(
-                "not enough spendable Ironwood funds: {} spendable, {} needed with the fee. Funds received from others need 10 confirmations (3 for your own change); see `quittance wallet balance`",
-                amount(available.into_u64(), network),
-                amount(required.into_u64(), network)
-            )),
-            DataError::ScanRequired => Error::NotSynced,
-            e => Error::Propose(format!("cannot propose the payment: {e}")),
-        })?;
+        let proposal = match req.amount {
+            Amount::Zat(0) => return Err(Error::Policy("the amount must be more than zero".into())),
+            Amount::Zat(zat) => {
+                let value = Zatoshis::from_u64(zat).map_err(|_| Error::Policy(format!("{zat} zatoshis is more than can exist")))?;
+                let payment = Payment::new(recipient.to_address(network), Some(value), memo, None, None, vec![])
+                    .map_err(|e| Error::Policy(format!("{e:?}")))?;
+                let request = TransactionRequest::new(vec![payment]).map_err(|e| Error::Policy(e.to_string()))?;
+                let change = SingleOutputChangeStrategy::new(StandardFeeRule::Zip317, None, ShieldedPool::Ironwood, DustOutputPolicy::default());
+                propose_transfer::<_, _, _, _, Infallible>(
+                    &mut self.db,
+                    &params,
+                    self.account,
+                    &GreedyInputSelector::new(),
+                    &change,
+                    request,
+                    ConfirmationsPolicy::default(),
+                    &SpendPolicy::shielded_pools([ShieldedPool::Ironwood]),
+                    None,
+                    None,
+                )
+                .map_err(|e| propose_error(e, network))?
+            }
+            Amount::Max => propose_send_max_transfer::<_, _, _, Infallible>(
+                &mut self.db,
+                &params,
+                self.account,
+                &[ShieldedPool::Ironwood],
+                &StandardFeeRule::Zip317,
+                recipient.to_address(network),
+                memo,
+                MaxSpendMode::MaxSpendable,
+                ConfirmationsPolicy::default(),
+                &LockedInputPolicy::Exclude,
+                None,
+            )
+            .map_err(|e| propose_error(e, network))?,
+        };
         let step = ironwood_only(&proposal)?;
         let fee_zat = step.balance().fee_required().into_u64();
+        let paid_zat = step.transaction_request().payments().values().filter_map(|p| p.amount()).map(|z| z.into_u64()).sum();
 
         let prover = LocalTxProver::bundled();
         let txids = create_proposed_transactions::<_, _, Infallible, _, Infallible, _>(
@@ -127,7 +144,7 @@ impl Wallet {
         let kit = self.kit_for_new_tx(lwd, &tx, step).await.and_then(|k| k.save(&self.dir));
 
         lwd.broadcast(&tx).await?;
-        Ok(Sent { txid, fee_zat, paid_to: recipient.encode(network), kit })
+        Ok(Sent { txid, paid_zat, fee_zat, paid_to: recipient.encode(network), kit })
     }
 
     async fn kit_for_new_tx(
@@ -150,6 +167,21 @@ impl Wallet {
             })
             .collect();
         self.kit_from_notes(lwd, tx.txid(), *bundle.anchor(), anchor_height, notes).await
+    }
+}
+
+fn propose_error<DE, TE, SE, FE, CE, N>(e: DataError<DE, TE, SE, FE, CE, N>, network: zip311::Network) -> Error
+where
+    DataError<DE, TE, SE, FE, CE, N>: std::fmt::Display,
+{
+    match e {
+        DataError::InsufficientFunds { available, required } => Error::Propose(format!(
+            "not enough spendable Ironwood funds: {} spendable, {} needed with the fee. Funds received from others need 10 confirmations (3 for your own change); see `quittance wallet balance`",
+            amount(available.into_u64(), network),
+            amount(required.into_u64(), network)
+        )),
+        DataError::ScanRequired => Error::NotSynced,
+        e => Error::Propose(format!("cannot propose the payment: {e}")),
     }
 }
 

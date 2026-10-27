@@ -31,6 +31,8 @@ pub enum Error {
     Recipient(#[from] RecipientError),
     #[error("refused: {0}")]
     Policy(String),
+    #[error("no confirmed transparent funds to shield: once a payment to the transparent address has a confirmation, run `quittance wallet sync` and try again")]
+    NothingToShield,
     #[error("{0}")]
     Propose(String),
     #[error("could not build the transaction: {0}")]

@@ -1965,6 +1965,7 @@ dependencies = [
  "axum",
  "hex",
  "orchard",
+ "quittance-wallet",
  "rand 0.10.3",
  "rustls",
  "serde",
@@ -2007,6 +2008,8 @@ dependencies = [
  "zcash_primitives",
  "zcash_proofs",
  "zcash_protocol",
+ "zcash_script",
+ "zcash_transparent",
  "zeroize",
  "zip311",
  "zip32",
@@ -3354,6 +3357,7 @@ checksum = "27228f279facfd6b9dd015cea88538020c30f87c8a4aa59e8ed85808d81febb5"
 dependencies = [
  "base64 0.22.1",
  "bech32",
+ "bip32",
  "bls12_381",
  "bs58",
  "byteorder",
@@ -3373,6 +3377,7 @@ dependencies = [
  "rand_core 0.10.1",
  "rayon",
  "sapling-crypto",
+ "secp256k1",
  "secrecy",
  "shardtree",
  "subtle",
@@ -3400,6 +3405,7 @@ version = "0.23.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d1d85c3c832c8554da6ed6114c81afef84f7dbb84c2279a3889277a8d2225019"
 dependencies = [
+ "bip32",
  "bitflags 2.13.2",
  "bs58",
  "byteorder",
@@ -3421,6 +3427,7 @@ dependencies = [
  "sapling-crypto",
  "schemerz",
  "schemerz-rusqlite",
+ "secp256k1",
  "secrecy",
  "shardtree",
  "static_assertions",
@@ -3458,6 +3465,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6e35ad8dafd173b0465e5963b520b241f497d978319faed46547bd81f403fa98"
 dependencies = [
  "bech32",
+ "bip32",
  "blake2b_simd",
  "bls12_381",
  "bs58",
@@ -3534,6 +3542,7 @@ dependencies = [
  "rand_core 0.10.1",
  "redjubjub",
  "sapling-crypto",
+ "secp256k1",
  "sha2 0.10.9",
  "zcash_encoding",
  "zcash_note_encryption",

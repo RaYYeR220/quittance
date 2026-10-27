@@ -35,6 +35,12 @@ pub fn balance(r: &BalanceReport) {
             println!("{name}  {} {t} (never spent by this wallet)", zec(b.total));
         }
     }
+    if r.watches_transparent {
+        let note = if r.transparent.total > 0 { " (public; move it into Ironwood with `quittance wallet shield`)" } else { "" };
+        println!("Transparent  {} {t}{note}", zec(r.transparent.total));
+    } else {
+        println!("Transparent  not watched (this wallet has never handed out a transparent address)");
+    }
 }
 
 pub fn history(txs: &[TxSummary], network: Network) {
